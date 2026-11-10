@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="es" data-paleta="arena">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Arquitecto</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+:root[data-paleta="arena"] {
+  color-scheme: light;
+  --s0: #ddd3b4; --s1: #e9e1c8; --s2: #d3c9a8; --t1: #33301f; --t2: #5f5940; --t3: #6f6849; --linea: #bfb493; --grid: #cfc5a5;
+  --acento: #8a4b2a; --acento-t: #f6f1e0; --banda: #cdb795;
+  --vig: #c9ae1e; --ale: #c8621a; --cri: #962018;
+  --u0: #dcd8c8; --u1: #b3bbc6; --u2: #919eb6; --u3: #7285ad;
+  --r1: #8391ad; --r2: #5f78a8; --r3: #38507f; --r4: #212d48; --raya: rgba(51,48,31,.22); --o1: #919eb6; --o2: #5f78a8; --o3: #38507f;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; --sans: "Geist", "Segoe UI", system-ui, sans-serif;
+}
+:root[data-paleta="original"] {
+  color-scheme: light;
+  --s0: #f6f5f2; --s1: #fcfcfb; --s2: #f0efec; --t1: #0b0b0b; --t2: #52514e; --t3: #7a7974; --linea: #cfcec9; --grid: #e4e3df;
+  --acento: #2a78d6; --acento-t: #fcfcfb; --banda: #b7d3f6;
+  --vig: #fab219; --ale: #ec835a; --cri: #d03b3b;
+  --u0: #e8f0fb; --u1: #cde2fb; --u2: #9ec5f4; --u3: #6da7ec;
+  --r1: #86b6ef; --r2: #3987e5; --r3: #1c5cab; --r4: #0d366b; --raya: rgba(0,0,0,.18); --o1: #9ec5f4; --o2: #3987e5; --o3: #1c5cab;
+  --mono: "Segoe UI", system-ui, sans-serif; --sans: "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-paleta="original"] {
+    color-scheme: dark;
+    --s0: #121211; --s1: #1a1a19; --s2: #2a2a28; --t1: #f0efec; --t2: #c3c2b7; --t3: #9a998f; --linea: #44443f; --grid: #33332f;
+    --acento: #3987e5; --acento-t: #121211; --banda: #1c5cab;
+    --u0: #22262e; --u1: #1f3350; --u2: #1c4a85; --u3: #2a66b5; --raya: rgba(255,255,255,.18);
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { display: grid; grid-template: 52px minmax(0, 1fr) 68px / 290px minmax(0, 1fr); grid-template-areas: "top top" "rail main" "rail tl";
+       background: var(--s0); color: var(--t1); font: 14px/1.4 var(--sans); overflow: hidden; }
+button, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+
+/* barra superior: lentes al centro, filtros a la derecha */
+#top { grid-area: top; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: var(--s1); border-bottom: 1px solid var(--linea); font-family: var(--mono); }
+.marca { font-weight: 600; font-size: 28px; line-height: 1; width: 258px; flex: none; white-space: nowrap; }
+.lentes { display: flex; gap: 2px; }
+.lentes button { border: 0; background: none; padding: 7px 13px; border-radius: 4px; color: var(--t2); }
+.lentes button[aria-selected="true"] { background: var(--acento); color: var(--acento-t); font-weight: 500; }
+.der { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+select { background: var(--s0); border: 1px solid var(--linea); border-radius: 4px; padding: 5px 6px; max-width: 150px; }
+.seg { display: inline-flex; border: 1px solid var(--linea); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; background: var(--s0); padding: 5px 9px; color: var(--t2); }
+.seg button[aria-pressed="true"] { background: var(--t1); color: var(--s1); }
+.icono { border: 1px solid var(--linea); background: var(--s0); border-radius: 4px; width: 30px; height: 30px; padding: 0; }
+
+/* riel: los campus son la navegación y a la vez el ranking */
+#rail { grid-area: rail; background: var(--s1); border-right: 1px solid var(--linea); display: flex; flex-direction: column; padding: 10px 8px; overflow-y: auto; }
+#rail h2 { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--t3); margin: 4px 8px 8px; }
+.campus { display: grid; grid-template-columns: minmax(0, 1fr) 44px 34px; align-items: center; gap: 8px; width: 100%; border: 0; background: none; text-align: left; padding: 9px 8px; border-radius: 4px; }
+.campus:hover { background: var(--s2); }
+.campus[aria-current="true"] { background: var(--s2); box-shadow: inset 3px 0 0 var(--acento); }
+.campus .nom { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.campus .num { font: 600 15px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.campus.total { border-bottom: 1px solid var(--linea); border-radius: 4px 4px 0 0; margin-bottom: 6px; padding-bottom: 11px; }
+.pie-rail { margin-top: auto; padding: 10px 8px 2px; font-size: 12px; color: var(--t3); }
+.pie-rail a { color: var(--t2); }
+
+/* zona principal: una frase con la respuesta y el gráfico ocupa el resto */
+#main { grid-area: main; display: flex; flex-direction: column; min-height: 0; padding: 14px 18px 10px; gap: 12px; }
+.res { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
+.res h1 { margin: 0; font: 600 22px/1.2 var(--mono); }
+.res h1 b { font-size: 34px; font-weight: 600; margin-right: 4px; }
+.ctx { color: var(--t3); font-size: 12.5px; margin-top: 3px; }
+.kpis { display: flex; gap: 26px; margin-left: auto; }
+.kpi .v { font: 600 21px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.kpi .e { font-size: 12px; color: var(--t2); }
+.chip { display: inline-block; border: 1px solid var(--ale); border-radius: 4px; background: none; font-size: 12px; padding: 1px 7px; margin-left: 6px; color: var(--t1); }
+#vista { flex: 1; min-height: 0; display: grid; gap: 12px; }
+#vista.dos { grid-template-columns: 3fr 2fr; }
+#vista.cal1 { grid-template-columns: minmax(0, 1fr) 280px; }
+.card { background: var(--s1); border: 1px solid var(--linea); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.card h3 { margin: 0; font: 500 13px var(--mono); }
+.card .ley { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 11.5px; color: var(--t2); margin-top: 2px; }
+.ley i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.lienzo { flex: 1; min-height: 0; position: relative; margin-top: 4px; }
+.lienzo svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+svg text { fill: var(--t2); font-size: 11px; font-family: var(--sans); }
+
+/* semana */
+.cals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 8px; min-height: 0; }
+.cal { cursor: pointer; padding: 7px 9px; }
+.cal:hover { border-color: var(--acento); }
+.cal .cab { display: flex; justify-content: space-between; gap: 6px; }
+.cal h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.cal .n { font: 600 13px var(--mono); }
+.pila { display: flex; flex-direction: column; min-height: 0; gap: 8px; }
+.barra-sem { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--t2); }
+.barra-sem .ley { display: flex; flex-wrap: wrap; gap: 3px 12px; }
+.peores ol { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+.peores li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 7px; align-items: center; padding: 6px 2px; border-bottom: 1px solid var(--grid); font-size: 13px; }
+.peores .p { font: 600 13px var(--mono); }
+
+/* Salas y 3D: el día es una barra que además muestra la ocupación */
+#vista.col { display: flex; flex-direction: column; gap: 8px; }
+.bd { display: flex; align-items: stretch; gap: 10px; flex: none; }
+.bd .seg { align-self: center; font-family: var(--mono); font-size: 12.5px; }
+.bd .icono { align-self: center; flex: none; }
+.spark { flex: 1; min-width: 0; height: 58px; position: relative; }
+.spark svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sal { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 10px; }
+.grs { display: flex; gap: 10px; min-height: 0; min-width: 0; --u: 16px; }
+.edifs { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px 14px; margin-top: 8px; }
+.edif span { display: block; font-size: 10.5px; color: var(--t3); margin-bottom: 3px; }
+.cells { display: grid; gap: 2px; }
+.u { display: block; width: var(--u, 13px); height: var(--u, 13px); border-radius: 2px; background: var(--s2); box-shadow: inset 0 0 0 1px var(--linea); }
+.u.on { box-shadow: none; }
+.u.sin { background: var(--cri); box-shadow: none; }
+.bandeja { border-style: dashed; border-color: var(--cri); }
+#bj { overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.rgt { display: flex; justify-content: space-between; font-size: 12px; color: var(--t2); margin-bottom: 4px; }
+.rgt b { font-family: var(--mono); color: var(--t1); }
+.cuad { display: flex; flex-wrap: wrap; gap: 2px; }
+.vacio { color: var(--t2); font-size: 13px; margin: 0; }
+.ley-prog { display: flex; flex-wrap: wrap; gap: 3px 14px; font-size: 11.5px; color: var(--t2); flex: none; }
+.ley-prog i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.ley-prog i.lib { background: var(--s2); box-shadow: inset 0 0 0 1px var(--linea); }
+.marco { flex: 1; min-height: 0; position: relative; }
+iframe { display: block; width: 100%; height: 100%; border: 1px solid var(--linea); border-radius: 6px; background: var(--s1); }
+.ctl3d { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; font: 12.5px var(--mono); }
+.pildora { border: 1px solid var(--linea); background: var(--s1); border-radius: 4px; padding: 5px 10px; }
+.pildora[aria-pressed="true"] { background: var(--t1); color: var(--s1); }
+
+/* línea de tiempo: el año es lo primero que se explora */
+#tl { grid-area: tl; display: flex; align-items: stretch; gap: 10px; padding: 0 18px 10px; }
+#play { border: 1px solid var(--linea); background: var(--s1); border-radius: 6px; width: 44px; flex: none; }
+.anios { flex: 1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.anio { position: relative; overflow: hidden; border: 1px solid var(--linea); background: var(--s1); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; padding: 0 12px; font-family: var(--mono); }
+.anio .b { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--ale); }
+.anio .y { font-size: 13px; color: var(--t2); }
+.anio .c { font-size: 18px; font-weight: 600; }
+.anio[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); }
+.anio[aria-pressed="true"] .y, .anio[aria-pressed="true"] .c { color: var(--acento-t); }
+.anio[aria-pressed="true"] .b { background: var(--acento-t); }
+.anio.ex { background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--raya) 6px 7px); }
+
+/* ayuda: el texto no se pierde, se pide */
+#ayuda { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100%); background: var(--s1); border-left: 1px solid var(--linea); padding: 18px 20px; overflow-y: auto; transform: translateX(100%); visibility: hidden; transition: transform .18s, visibility .18s; z-index: 5; box-shadow: -8px 0 24px rgba(0,0,0,.14); }
+#ayuda.abierta { transform: none; visibility: visible; }
+#ayuda h2 { font: 600 16px var(--mono); margin: 0 0 4px; }
+#ayuda h3 { font: 500 13px var(--mono); margin: 16px 0 3px; }
+#ayuda p { margin: 0; font-size: 13.5px; color: var(--t2); line-height: 1.5; }
+#ayuda .cerrar { position: absolute; top: 12px; right: 12px; }
+.tip { position: fixed; pointer-events: none; background: var(--s1); border: 1px solid var(--linea); border-radius: 6px; padding: 7px 10px; font-size: 12px; line-height: 1.45; box-shadow: 0 4px 16px rgba(0,0,0,.16); opacity: 0; max-width: 270px; z-index: 6; }
+.tip .m { color: var(--t2); }
+
+@media (max-width: 1100px) { .kpis { margin-left: 0; } #vista.dos { grid-template-columns: 1fr; } .cals { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; grid-auto-rows: minmax(190px, 1fr); overflow-y: auto; } .marca { width: auto; } }
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  body { display: block; overflow: auto; }
+  #top { flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+  .marca { width: 100%; } .der { margin-left: 0; flex-wrap: wrap; } .lentes { order: 3; width: 100%; overflow-x: auto; }
+  .res h1 { font-size: 18px; } .kpis { flex-wrap: wrap; gap: 14px; } #vista, .pila, .card, .lienzo { min-width: 0; } .lienzo { min-height: 260px; }
+  #rail { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--linea); }
+  #rail h2, .pie-rail { display: none; }
+  .campus { width: 190px; flex: none; }
+  #main { padding: 12px; }
+  #vista.dos, #vista.cal1, .sal { grid-template-columns: 1fr; }
+  .grs { flex-direction: column; } .edifs { overflow: visible; } .marco { min-height: 420px; flex: none; } .bd { flex-wrap: wrap; } .spark { flex: 1 0 100%; }
+  #vista .card, #vista iframe { min-height: 320px; }
+  .cals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #tl { position: sticky; bottom: 0; background: var(--s0); padding: 8px 12px; height: 62px; }
+  .anio { padding: 0 6px; flex-direction: column; justify-content: center; }
+  .anio .c { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="marca">El Arquitecto</div>
+  <div class="lentes" role="tablist" id="lentes"></div>
+  <div class="der">
+    <select id="per" aria-label="Período"></select>
+    <div class="seg" id="esc" role="group" aria-label="Escenario"></div>
+    <select id="rango" aria-label="Tamaño de sala"></select>
+    <select id="paleta" aria-label="Paleta"><option value="arena">Arena</option><option value="original">Original</option></select>
+    <button class="icono" id="abrir" aria-label="Cómo leer esto" title="Cómo leer esto">?</button>
+  </div>
+</header>
+<nav id="rail" aria-label="Campus"></nav>
+<main id="main">
+  <div class="res" id="res"></div>
+  <div id="vista"></div>
+</main>
+<div id="tl"><button id="play" aria-label="Reproducir los años" title="Reproducir los años">▶</button><div class="anios" id="anios"></div></div>
+<aside id="ayuda" aria-label="Cómo leer esto">
+  <button class="icono cerrar" id="cerrar" aria-label="Cerrar">×</button>
+  <h2>Cómo leer esto</h2>
+  <h3>Hora en alerta</h3>
+  <p>Una hora de la semana (día × bloque) de una clase de espacio en un campus está en alerta cuando la probabilidad de que la demanda supere las salas de su tamaño es de 25 % o más.</p>
+  <h3>Semáforo</h3>
+  <p>▲ Vigilancia desde 10 %. ◆ Alerta desde 25 %, la que se informa. ● Crítica desde 50 %. El punto blanco indica que faltan salas grandes (41 o más).</p>
+  <h3>Sin sala y sobrecupo</h3>
+  <p>Sin sala: secciones de la programación proyectada que no encuentran sala de su tamaño. Sobrecupo: caben, pero con más inscritos que la capacidad nominal. Ambas cifras son del escenario base.</p>
+  <h3>Rango bajo–alto</h3>
+  <p>Cada escenario de matrícula se cuenta por separado. En 2027 el rango viene de la banda de Euribia y en 2028–2031 de Ariadna: tienen otra definición y no son comparables.</p>
+  <h3>2031</h3>
+  <p>Es extrapolado: se proyecta igual, pero el error del modelo se midió hasta 2030.</p>
+  <h3>Qué tan firme es</h3>
+  <p>Lo firme es el crecimiento y el riesgo por campus, no la hora exacta de cada alerta. Es una programación simulada, con la planta física actual y sin obras.</p>
+  <h3>Salas y 3D</h3>
+  <p>Muestran la programación simulada: a cada sección se le asigna la sala libre más chica que le sirva y lo que no cabe queda sin sala. Existe para los semestres de pregrado y el escenario base. Es una realización del modelo: sirve para ver dónde aprieta, no qué sala exacta se ocupará.</p>
+  <h3>Fuente</h3>
+  <p>Modelos.ipynb, 28-10-2026.</p>
+</aside>
+<div class="tip" id="tip"></div>
+<script src="renuevo_datos.js?v=2"></script>
+<script>
+const { S, A, SEDES, HORAS, DCORTO, DLARGO } = window;
+const ANIOS = [2027, 2028, 2029, 2030, 2031], CAMPUS = ["C01", "C02", "C03", "C04", "C05", "C06", "C07"];
+const PERIODOS = [[10, "1.er semestre"], [20, "2.º semestre"], [5, "AV · T1"], [15, "AV · T2"], [25, "AV · T3"]];
+const ESC = [["bajo", "Bajo"], ["base", "Base"], ["alto", "Alto"]];
+const RANGOS = [["todos", "Todo tamaño"], ["0-20", "0–20"], ["21-40", "21–40"], ["41-60", "41–60"], ["60 o más", "60 o más"]];
+const LENTES = [["panorama", "Panorama"], ["semana", "Semana"], ["salas", "Salas"], ["campus3d", "3D"]];
+const st = { lente: "panorama", campus: "TODOS", anio: 2031, per: 10, esc: "base", rango: "todos", clase: "SALA", paleta: "arena" };
+const $ = id => document.getElementById(id);
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de").replace(/Provid$/, "Comuna Centro");
+const nombre = c => c === "TODOS" ? "Todos los campus" : nice((SEDES[c] || c).replace(/^.*?[-–]\s*/, ""));
+const pct = v => (v * 100).toFixed(1).replace(".", ",") + " %";
+const nomPer = () => PERIODOS.find(p => p[0] === st.per)[1];
+const cnt = (c, cl, a, e = st.esc) => S.serie[`${c}|${cl}|${a * 100 + st.per}|${e}|${st.rango}`] || [0, 0, 0];
+const def = (c, a) => S.deficit[`${c}|${a * 100 + st.per}`] || null;     // null: el campus no tiene programación en ese período
+const conOMas = rg => (rg.includes("más") ? rg : rg + " o más");
+// sin sala y sobrecupo no dependen de los filtros: se dice cuando hay uno activo
+const alcanceDef = () => { const a = [st.esc !== "base" ? "escenario base" : "", st.rango !== "todos" ? "todos los tamaños" : ""].filter(Boolean); return a.length ? ` (${a.join(", ")})` : ""; };
+const NIV = [null, ["vigilancia", "var(--vig)", "▲"], ["alerta", "var(--ale)", "◆"], ["crítica", "var(--cri)", "●"]];
+const nivel = p => (p >= 50 ? 3 : p >= 25 ? 2 : p >= 10 ? 1 : 0);
+const tip = {
+  show(ev, h) { const t = $("tip"); t.innerHTML = h; t.style.left = Math.min(ev.clientX + 14, innerWidth - 280) + "px"; t.style.top = Math.min(ev.clientY + 14, innerHeight - 110) + "px"; t.style.opacity = 1; },
+  hide() { $("tip").style.opacity = 0; },
+};
+
+// ---------- controles
+$("lentes").innerHTML = LENTES.map(([k, t]) => `<button role="tab" data-l="${k}">${t}</button>`).join("");
+$("per").innerHTML = PERIODOS.map(([k, t]) => `<option value="${k}">${t}</option>`).join("");
+$("rango").innerHTML = RANGOS.map(([k, t]) => `<option value="${k}">${t}</option>`).join("");
+$("esc").innerHTML = ESC.map(([k, t]) => `<button data-e="${k}">${t}</button>`).join("");
+$("lentes").onclick = e => { const l = e.target.dataset.l; if (!l) return; st.lente = l; detenerDia(); if (l === "salas" || l === "campus3d") asegurarCampus(); render(); };
+$("esc").onclick = e => { if (e.target.dataset.e) { st.esc = e.target.dataset.e; render(); } };
+$("per").onchange = e => { st.per = +e.target.value; render(); };
+$("rango").onchange = e => { st.rango = e.target.value; render(); };
+$("paleta").onchange = e => { st.paleta = e.target.value; document.documentElement.dataset.paleta = st.paleta; render(); };
+$("abrir").onclick = () => $("ayuda").classList.add("abierta");
+$("cerrar").onclick = () => $("ayuda").classList.remove("abierta");
+addEventListener("keydown", e => { if (e.key === "Escape") $("ayuda").classList.remove("abierta"); });
+let reloj = null;
+$("play").onclick = () => {
+  if (reloj) { clearInterval(reloj); reloj = null; $("play").textContent = "▶"; return; }
+  $("play").textContent = "❚❚";
+  reloj = setInterval(() => { st.anio = st.anio >= 2031 ? 2027 : st.anio + 1; render(); }, 1400);
+};
+// Salas y 3D son por campus: si está en «Todos» se entra al que tiene más alertas
+function asegurarCampus() {
+  if (st.campus === "TODOS") st.campus = [...CAMPUS].sort((a, b) => cnt(b, "*", st.anio)[1] - cnt(a, "*", st.anio)[1])[0];
+}
+
+// ---------- riel y línea de tiempo
+function rail() {
+  const fila = c => {
+    const v = ANIOS.map(a => cnt(c, "*", a)[1]), m = Math.max(1, ...v), i = ANIOS.indexOf(st.anio);
+    const barras = v.map((x, j) => `<rect x="${j * 9}" y="${16 - Math.max(1, x / m * 16)}" width="7" height="${Math.max(1, x / m * 16)}" rx="1" fill="${j === i ? "var(--acento)" : "var(--linea)"}"/>`).join("");
+    return `<button class="campus${c === "TODOS" ? " total" : ""}" data-c="${c}" ${c === st.campus ? 'aria-current="true"' : ""}><span class="nom">${nombre(c)}</span><svg width="44" height="16" aria-hidden="true">${barras}</svg><span class="num">${v[i]}</span></button>`;
+  };
+  const orden = [...CAMPUS].sort((a, b) => cnt(b, "*", st.anio)[1] - cnt(a, "*", st.anio)[1]);
+  $("rail").innerHTML = `<h2>Horas en alerta · ${st.anio}</h2>` + fila("TODOS") + orden.map(fila).join("") +
+    `<div class="pie-rail"><a href="../maquetas_visualizacion${st.paleta === "arena" ? "_arena" : ""}/DEMO_SOSTRATO.html#base">Línea base 2026-1</a></div>`;
+  $("rail").querySelectorAll(".campus").forEach(b => b.onclick = () => {
+    st.campus = b.dataset.c; detenerDia(); if (st.lente === "salas" || st.lente === "campus3d") asegurarCampus(); render();
+  });
+}
+function linea() {
+  const v = ANIOS.map(a => cnt(st.campus, "*", a)[1]), m = Math.max(1, ...v);
+  $("anios").innerHTML = ANIOS.map((a, i) => `<button class="anio${a === 2031 ? " ex" : ""}" data-a="${a}" aria-pressed="${a === st.anio}" title="${a === 2031 ? "2031 es extrapolado" : ""}">
+    <span class="y">${a}</span><span class="c">${v[i]}</span><span class="b" style="width:${v[i] / m * 100}%"></span></button>`).join("");
+  $("anios").querySelectorAll(".anio").forEach(b => b.onclick = () => { st.anio = +b.dataset.a; render(); });
+}
+
+// ---------- encabezado: la respuesta en una frase
+const contexto = () => `${nombre(st.campus)} · ${nomPer()} ${st.anio} · escenario ${st.esc}${st.rango === "todos" ? "" : " · espacios de " + conOMas(st.rango)}`;
+function chips() {
+  let h = "";
+  if (st.anio === 2031) h += `<button class="chip" data-ayuda>2031 extrapolado</button>`;
+  if ((st.lente === "salas" || st.lente === "campus3d") && st.esc !== "base") h += `<button class="chip" data-ayuda>Solo escenario base</button>`;
+  if ((st.lente === "salas" || st.lente === "campus3d") && ![10, 20].includes(st.per)) h += `<button class="chip" data-ayuda>Se muestra el 1.er semestre</button>`;
+  if (st.anio === 2027 && st.esc !== "base" && st.lente !== "salas" && st.lente !== "campus3d") h += `<button class="chip" data-ayuda>2027: rango no comparable</button>`;
+  if (st.lente === "semana" && st.campus === "C01" && st.clase === "LABORATORIO") h += `<button class="chip" data-ayuda title="Laboratorios de 60 o más: puede ser gestión de grupos">Validar con infraestructura</button>`;
+  return h;
+}
+function encabezado(n, unidad, kpis = "", ctx = contexto()) {
+  $("res").innerHTML = `<div><h1><b>${n}</b> ${unidad}</h1><div class="ctx">${ctx}${chips()}</div></div>${kpis ? `<div class="kpis">${kpis}</div>` : ""}`;
+  $("res").querySelectorAll("[data-ayuda]").forEach(b => b.onclick = () => $("ayuda").classList.add("abierta"));
+}
+const kpi = (v, e) => `<div class="kpi"><div class="v">${v}</div><div class="e">${e}</div></div>`;
+
+// ---------- lente Panorama
+function panorama() {
+  const c = st.campus, cur = cnt(c, "*", st.anio), d = def(c, st.anio);
+  encabezado(cur[1], "horas de la semana en alerta",
+    kpi(cur[2], "críticas") + (d ? kpi(pct(d[0]), "de las clases sin sala" + alcanceDef()) + kpi(pct(d[1]), "en sobrecupo" + alcanceDef()) : kpi("—", "sin programación en este período")));
+  $("vista").className = "dos";
+  $("vista").innerHTML = `<section class="card"><h3>Horas en alerta por año</h3><div class="ley"><span><i style="background:var(--acento)"></i>escenario ${st.esc}</span><span><i style="background:var(--banda)"></i>rango bajo–alto</span></div><div class="lienzo" id="c1"></div></section>
+    <section class="card"><h3>Clases sin sala, por tamaño que piden${alcanceDef()}</h3><div class="ley">${S.rangos.slice(1).map((r, i) => `<span><i style="background:var(--r${i + 1})"></i>${r}</span>`).join("")}<span><i style="background:var(--ale)"></i>sobrecupo</span></div><div class="lienzo" id="c2"></div></section>`;
+  curva($("c1")); deficit($("c2"));
+}
+function curva(el) {
+  const W = el.clientWidth, H = el.clientHeight, m = { l: 36, r: 34, t: 16, b: 24 }, k = st.campus;
+  const vals = { bajo: [], base: [], alto: [] };
+  ANIOS.forEach(a => ESC.forEach(([e]) => vals[e].push(cnt(k, "*", a, e)[1])));
+  const ymax = Math.max(10, ...vals.alto, ...vals.base) * 1.1;
+  const x = a => m.l + (a - 2027) / 4 * (W - m.l - m.r), y = v => m.t + (1 - v / ymax) * (H - m.t - m.b);
+  const tick = Math.max(10, Math.ceil(ymax / 4 / 10) * 10);
+  let s = `<defs><pattern id="rayas" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="var(--raya)" stroke-width="1.5"/></pattern></defs>`;
+  s += `<rect x="${x(2030.5)}" y="${m.t}" width="${x(2031) - x(2030.5) + m.r}" height="${H - m.t - m.b}" fill="url(#rayas)"/>`;
+  for (let v = 0; v <= ymax; v += tick) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  ANIOS.forEach(a => s += `<text x="${x(a)}" y="${H - 6}" text-anchor="middle"${a === st.anio ? ' font-weight="600" style="fill:var(--t1)"' : ""}>${a}</text>`);
+  const lado = (e, ord) => ord.map(i => `${x(ANIOS[i])},${y(vals[e][i])}`).join(" ");
+  s += `<polygon points="${lado("alto", [1, 2, 3, 4])} ${lado("bajo", [4, 3, 2, 1])}" fill="var(--banda)" opacity=".6"/>`;
+  s += `<line x1="${x(2027)}" x2="${x(2027)}" y1="${y(vals.alto[0])}" y2="${y(vals.bajo[0])}" stroke="var(--banda)" stroke-width="3" stroke-dasharray="3 3"/>`;
+  s += `<line x1="${x(st.anio)}" x2="${x(st.anio)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--t3)" stroke-dasharray="3 3"/>`;
+  s += `<polyline points="${ANIOS.map((a, i) => `${x(a)},${y(vals[st.esc][i])}`).join(" ")}" fill="none" stroke="var(--acento)" stroke-width="2.5"/>`;
+  ANIOS.forEach((a, i) => s += `<circle cx="${x(a)}" cy="${y(vals[st.esc][i])}" r="${a === st.anio ? 7 : 4.5}" fill="var(--acento)" stroke="var(--s1)" stroke-width="2"/>
+    <rect class="hit" data-i="${i}" x="${x(a) - 30}" y="${m.t}" width="60" height="${H - m.t - m.b}" fill="transparent" style="cursor:pointer"/>`);
+  [0, 4].forEach(i => s += `<text x="${x(ANIOS[i]) + (i ? 0 : 4)}" y="${y(vals[st.esc][i]) - 12}" text-anchor="${i ? "end" : "start"}" font-weight="600" style="fill:var(--t1)">${vals[st.esc][i]}</text>`);
+  el.innerHTML = `<svg role="img" aria-label="Horas en alerta por año">${s}</svg>`;
+  const sv = el.firstChild;
+  sv.onmousemove = ev => { const i = ev.target.dataset.i; if (i === undefined) return tip.hide();
+    tip.show(ev, `<b>${ANIOS[i]}${+i === 4 ? " · extrapolado" : ""}</b><br>Horas en alerta: <b>${vals[st.esc][i]}</b><br><span class="m">bajo ${vals.bajo[i]} · alto ${vals.alto[i]}${+i === 0 ? " · banda de Euribia" : ""}</span>`); };
+  sv.onmouseleave = tip.hide;
+  sv.onclick = ev => { const i = ev.target.dataset.i; if (i !== undefined) { st.anio = ANIOS[i]; render(); } };
+}
+function deficit(el) {
+  const W = el.clientWidth, H = el.clientHeight, m = { l: 34, r: 8, t: 12, b: 24 }, crudo = ANIOS.map(a => def(st.campus, a));
+  if (W <= 0) return;                                        // pestaña oculta: se dibuja al mostrarse
+  if (crudo.every(d => !d)) { el.innerHTML = `<p class="vacio">${nombre(st.campus)} no tiene programación en este período.</p>`; return; }
+  const ds = crudo.map(d => d || [0, 0, [0, 0, 0, 0]]);
+  const dmax = Math.max(0.05, ...ds.map(d => Math.max(d[0], d[1]))) * 1.12, bw = (W - m.l - m.r) / 5, y = v => m.t + (1 - v / dmax) * (H - m.t - m.b);
+  let t = "";
+  for (let v = 0; v <= dmax; v += 0.05) t += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${Math.round(v * 100)} %</text>`;
+  ds.forEach((d, i) => {
+    let acc = 0; const x0 = m.l + i * bw + bw * .24, w = bw * .52;
+    d[2].forEach((sh, r) => { const h = d[0] * sh; if (h <= 0) return;
+      t += `<rect x="${x0}" y="${y(acc + h)}" width="${w}" height="${Math.max(0, y(acc) - y(acc + h) - 2)}" fill="var(--r${r + 1})"/>`; acc += h; });
+    t += `<text x="${x0 + w / 2}" y="${H - 6}" text-anchor="middle"${ANIOS[i] === st.anio ? ' font-weight="600" style="fill:var(--t1)"' : ""}>${ANIOS[i]}</text>`;
+    t += `<rect class="hit" data-j="${i}" x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${H - m.t - m.b}" fill="transparent"/>`;
+  });
+  t += `<polyline points="${ds.map((d, i) => `${m.l + i * bw + bw / 2},${y(d[1])}`).join(" ")}" fill="none" stroke="var(--ale)" stroke-width="2" pointer-events="none"/>`;
+  ds.forEach((d, i) => t += `<circle cx="${m.l + i * bw + bw / 2}" cy="${y(d[1])}" r="4" fill="var(--ale)" stroke="var(--s1)" stroke-width="2" pointer-events="none"/>`);
+  el.innerHTML = `<svg role="img" aria-label="Clases sin sala y sobrecupo por año">${t}</svg>`;
+  el.firstChild.onmousemove = ev => { const j = ev.target.dataset.j; if (j === undefined) return tip.hide(); const d = ds[j];
+    if (!crudo[j]) return tip.show(ev, `<b>${ANIOS[j]}</b><br>Sin programación en este período`);
+    tip.show(ev, `<b>${ANIOS[j]}${+j === 4 ? " · extrapolado" : ""}</b> · escenario base<br>Sin sala <b>${pct(d[0])}</b> · sobrecupo ${pct(d[1])}<br><span class="m">Piden: ${S.rangos.slice(1).map((r, i) => `${r} ${Math.round(d[2][i] * 100)} %`).join(" · ")}</span>`); };
+  el.firstChild.onmouseleave = tip.hide;
+}
+
+// ---------- lente Semana
+const NC = A.campos.length, F = Object.fromEntries(A.campos.map((c, i) => [c, i]));
+function celda(arr, d, b) {
+  const o = (d * 20 + b) * NC, r = A.rangos.indexOf(st.rango);
+  return { prob: r < 0 ? arr[o + F.PT] : arr[o + F["A" + r]], rc: arr[o + F.RC], p10: arr[o + F.P10] / 10, p50: arr[o + F.P50] / 10, p90: arr[o + F.P90] / 10, dem: r < 0 ? arr[o + F.P50] / 10 : arr[o + F["D" + r]] / 10 };
+}
+const espacios = c => { const r = A.rangos.indexOf(st.rango); return r < 0 ? A.cap[`${c}|${st.clase}`] : A.esp[`${c}|${st.clase}`][r]; };
+const arrDe = c => A.celdas[`${c}|${st.clase}|${st.anio * 100 + st.per}|${st.esc}`];
+function colorCelda(v, esp) {
+  const n = nivel(v.prob); if (n) return NIV[n][1];
+  return `var(--u${Math.min(3, Math.floor(Math.max(0, esp ? v.dem / esp : 0) * 4))})`;
+}
+function calendario(el, c, arr, grande) {
+  const W = el.clientWidth, H = el.clientHeight, ml = grande ? 44 : 34, mt = 15, cw = (W - ml) / 6, ch = (H - mt) / 20, esp = espacios(c), r = A.rangos.indexOf(st.rango);
+  let s = `<defs><pattern id="ex${c}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--raya)" stroke-width="1.5"/></pattern></defs>`;
+  s += DCORTO.map((d, i) => `<text x="${ml + i * cw + cw / 2}" y="10" text-anchor="middle">${d}</text>`).join("");
+  for (let b = 0; b < 20; b++) {
+    if ([1, 5, 9, 13, 17].includes(b)) s += `<text x="${ml - 5}" y="${mt + b * ch + ch / 2 + 3}" text-anchor="end" style="font-size:${grande ? 11 : 9.5}px">${HORAS[b]}</text>`;
+    for (let d = 0; d < 6; d++) {
+      const v = celda(arr, d, b);
+      s += `<rect data-k="${d}|${b}" x="${ml + d * cw}" y="${mt + b * ch}" width="${Math.max(1, cw - 2)}" height="${Math.max(1, ch - 2)}" rx="2" fill="${colorCelda(v, esp)}"/>`;
+      if (nivel(v.prob) >= 2 && r < 0 && v.rc >= 2) s += `<circle cx="${ml + d * cw + cw / 2 - 1}" cy="${mt + b * ch + ch / 2 - 1}" r="${Math.min(3, ch / 4)}" fill="#fff" pointer-events="none"/>`;
+    }
+  }
+  if (st.anio === 2031) s += `<rect x="${ml}" y="${mt}" width="${6 * cw}" height="${20 * ch}" fill="url(#ex${c})" pointer-events="none"/>`;
+  el.innerHTML = `<svg role="img" aria-label="Semana de ${nombre(c)}">${s}</svg>`;
+  el.firstChild.onmousemove = ev => { const k = ev.target.dataset.k; if (!k) return tip.hide();
+    const [d, b] = k.split("|").map(Number), v = celda(arr, d, b), n = nivel(v.prob);
+    const dec = x => x.toFixed(1).replace(".", ","), lab = st.clase !== "SALA", ef = r < 0 ? 0 : OFERTA_EFECTIVA[`${c}|${st.clase}|${r}|${st.per}|${d}|${b}`];
+    tip.show(ev, `<b>${nombre(c)}</b> · ${lab ? "laboratorios" : "salas"}<br>${DLARGO[d]} · ${HORAS[b]}<br>${n ? NIV[n][2] + " <b>" + NIV[n][0] + "</b>" : "sin alerta"} · prob. de saturar <b>${v.prob} %</b>` +
+      // los rangos son anidados (r o más): el primero equivale a la celda completa
+      (r < 0 && n ? `<br>Tamaño más exigido: <b>${v.rc === 0 ? "todos los tamaños" : A.rangos[v.rc].includes("más") ? A.rangos[v.rc] : A.rangos[v.rc] + " o más"}</b>` : "") +
+      `<br><span class="m">${lab ? "Laboratorios necesarios" : "Salas necesarias"}: P50 ${dec(v.dem)} de ${esp}${r < 0 ? `<br>Banda P10–P90: ${dec(v.p10)}–${dec(v.p90)} (se lee sola, no se suma)` : ""}${ef ? `<br>Oferta efectiva del modelo: ${dec(ef)}, por lo que el período base ya usa` : ""}</span>` +
+      (c === "C01" && lab && v.rc === 3 && n ? `<br><span class="m">⚠ laboratorio 60+: a validar con infraestructura</span>` : "") +
+      (st.anio === 2031 ? `<br><span class="m">2031 extrapolado</span>` : "")); };
+  el.firstChild.onmouseleave = tip.hide;
+}
+function semana() {
+  const lista = (st.campus === "TODOS" ? CAMPUS : [st.campus]).filter(arrDe);
+  const cuenta = c => { const a = arrDe(c); let n = 0; for (let d = 0; d < 6; d++) for (let b = 0; b < 20; b++) if (celda(a, d, b).prob >= 25) n++; return n; };
+  const orden = lista.map(c => [c, cuenta(c)]).sort((a, b) => b[1] - a[1]), total = orden.reduce((s, x) => s + x[1], 0);
+  encabezado(total, `horas en alerta en ${st.clase === "SALA" ? "salas" : "laboratorios"}`);
+  const uno = lista.length === 1;
+  const barra = `<div class="barra-sem"><div class="seg" id="clase"><button data-k="SALA" aria-pressed="${st.clase === "SALA"}">Salas</button><button data-k="LABORATORIO" aria-pressed="${st.clase !== "SALA"}">Laboratorios</button></div>
+    <div class="ley">${NIV.slice(1).map(n => `<span><i style="background:${n[1]}"></i>${n[2]} ${n[0]}</span>`).join("")}<span><i style="background:var(--u2)"></i>sin alerta: tono = uso</span></div></div>`;
+  $("vista").className = uno ? "cal1" : "";
+  if (uno) {
+    const c = lista[0], arr = arrDe(c), esp = espacios(c), top = [];
+    for (let d = 0; d < 6; d++) for (let b = 0; b < 20; b++) { const v = celda(arr, d, b); if (v.prob >= 10) top.push({ d, b, ...v }); }
+    top.sort((x, y) => y.prob - x.prob || y.p50 - x.p50);
+    $("vista").innerHTML = `<div class="pila">${barra}<section class="card" style="flex:1"><div class="lienzo" id="cal"></div></section></div>
+      <section class="card peores"><h3>Horas más exigidas</h3><ol>${top.slice(0, 9).map(t => `<li><span style="color:${NIV[nivel(t.prob)][1]}">${NIV[nivel(t.prob)][2]}</span><span>${DLARGO[t.d]} ${HORAS[t.b]}</span><span class="p">${t.prob} %</span></li>`).join("") || "<li><span></span><span>Sin horas en alerta ni vigilancia</span></li>"}</ol></section>`;
+    calendario($("cal"), c, arr, true);
+  } else {
+    $("vista").innerHTML = `<div class="pila">${barra}<div class="cals" style="flex:1">${orden.map(([c, n]) => `<section class="card cal" data-c="${c}"><div class="cab"><h3>${nombre(c)}</h3><span class="n">${n}</span></div><div class="lienzo"></div></section>`).join("")}</div></div>`;
+    $("vista").querySelectorAll(".cal").forEach(e => { calendario(e.querySelector(".lienzo"), e.dataset.c, arrDe(e.dataset.c), false); e.onclick = () => { st.campus = e.dataset.c; render(); }; });
+  }
+  $("clase").onclick = e => { if (e.target.dataset.k) { st.clase = e.target.dataset.k; render(); } };
+}
+
+// ---------- programación sintética: la comparten Salas y 3D (solo semestres de pregrado y escenario base)
+let dia = 2, bloque = 3, relojDia = null, occ = {}, defi = [], P = null, marcoListo = false, ultimoSrc = "";
+const usaProg = () => st.lente === "salas" || st.lente === "campus3d";
+const perProg = () => ([10, 20].includes(st.per) ? st.per : 10);
+const nomPerProg = () => PERIODOS.find(p => p[0] === perProg())[1];
+function detenerDia() { if (relojDia) { clearInterval(relojDia); relojDia = null; } }
+function cargarProg(c, listo) {
+  const s = document.createElement("script"); s.src = `salas_${c}.js`; s.onload = listo; document.head.append(s);
+}
+function cargarOcc() {
+  P = window.PROG[st.campus]; occ = {}; defi = [];
+  const k = String(st.anio * 100 + perProg()), o = P.ocup[k] || [], d = P.deficit[k] || [];
+  for (let i = 0; i < o.length; i += 6) {
+    const key = o[i] + "|" + o[i + 1] + "|" + o[i + 2], prev = occ[key];
+    if (!prev || o[i + 3] > prev.ins) occ[key] = { ins: o[i + 3], mat: P.materias[o[i + 4]], sobre: o[i + 5] || (prev && prev.sobre) };
+  }
+  for (let i = 0; i < d.length; i += 6) defi.push({ dia: d[i], b: d[i + 1], rg: d[i + 2], ins: d[i + 3], mat: P.materias[d[i + 4]], cl: P.clases[d[i + 5]] });
+}
+const rangoMin = () => Math.max(0, P.rangos.indexOf(st.rango));
+const salasVis = () => P.salas.filter(s => P.rangos.indexOf(s.RANGO) >= rangoMin());
+const sinSala = (b = bloque) => defi.filter(d => d.dia === dia && d.b === b && d.rg >= rangoMin());
+const tono = (o, cap) => { if (o.sobre) return "var(--ale)"; const f = cap > 0 ? o.ins / cap : 0.5; return f >= 0.9 ? "var(--o3)" : f >= 0.5 ? "var(--o2)" : "var(--o1)"; };
+const BARRA_DIA = `<div class="bd"><div class="seg" id="dias">${DLARGO.map((d, i) => `<button data-d="${i}">${d.slice(0, 3)}</button>`).join("")}</div><button class="icono" id="playDia" aria-label="Reproducir el día" title="Reproducir el día">▶</button><div class="spark" id="spark"></div></div>`;
+const LEY_PROG = `<div class="ley-prog"><span><i class="lib"></i>libre</span><span><i style="background:var(--o1)"></i>menos de 50 % de su capacidad</span><span><i style="background:var(--o2)"></i>50–90 %</span><span><i style="background:var(--o3)"></i>90–100 %</span><span><i style="background:var(--ale)"></i>sobrecupo</span><span><i style="background:var(--cri)"></i>sin sala</span></div>`;
+function enlazarBarra() {
+  $("dias").onclick = e => { if (e.target.dataset.d !== undefined) { dia = +e.target.dataset.d; pintarBloque(); } };
+  $("playDia").onclick = () => {
+    if (relojDia) { detenerDia(); $("playDia").textContent = "▶"; return; }
+    $("playDia").textContent = "❚❚"; bloque = 1; pintarBloque();
+    relojDia = setInterval(() => { if (bloque >= 19) { detenerDia(); $("playDia").textContent = "▶"; return; } bloque++; pintarBloque(); }, 650);
+  };
+}
+function pintarSpark() {
+  document.querySelectorAll("#dias button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.d === dia));
+  const el = $("spark"), W = el.clientWidth, H = el.clientHeight, bw = W / 19, vis = new Set(salasVis().map(s => P.salas.indexOf(s))), n = Math.max(1, vis.size), ocu = Array(19).fill(0);
+  Object.keys(occ).forEach(k => { const [si, d, b] = k.split("|").map(Number); if (d === dia && b >= 1 && b <= 19 && vis.has(si)) ocu[b - 1]++; });
+  const sn = ocu.map((_, i) => sinSala(i + 1).length), mx = Math.max(n, ...ocu.map((v, i) => v + sn[i])), ab = 13, y = v => H - ab - v / mx * (H - ab - 3);
+  let s = "";
+  ocu.forEach((v, i) => {
+    const b = i + 1, on = b === bloque;
+    s += `<rect x="${i * bw + 1}" y="${y(v)}" width="${bw - 2}" height="${H - ab - y(v)}" rx="2" fill="${on ? "var(--acento)" : "var(--banda)"}"/>`;
+    if (sn[i]) s += `<rect x="${i * bw + 1}" y="${y(v + sn[i])}" width="${bw - 2}" height="${Math.max(1, y(v) - y(v + sn[i]) - 1)}" fill="var(--cri)"/>`;
+    if (i % 3 === 0 || on) s += `<text x="${i * bw + bw / 2}" y="${H - 2}" text-anchor="middle" style="font-size:10px${on ? ";fill:var(--t1);font-weight:600" : ""}">${HORAS[b]}</text>`;
+    s += `<rect class="hit" data-b="${b}" x="${i * bw}" y="0" width="${bw}" height="${H}" fill="transparent" style="cursor:pointer"/>`;
+  });
+  s += `<line x1="0" x2="${W}" y1="${y(n)}" y2="${y(n)}" stroke="var(--t3)" stroke-dasharray="4 3" pointer-events="none"/>`;
+  el.innerHTML = `<svg role="img" aria-label="Ocupación del día por bloque">${s}</svg>`;
+  el.firstChild.onclick = e => { if (e.target.dataset.b) { bloque = +e.target.dataset.b; pintarBloque(); } };
+  el.firstChild.onmousemove = e => { const b = +e.target.dataset.b; if (!b) return tip.hide();
+    tip.show(e, `<b>${DLARGO[dia]} ${HORAS[b]}</b><br>${ocu[b - 1]} de ${n} espacios ocupados<br>${sn[b - 1]} secciones sin sala`); };
+  el.firstChild.onmouseleave = tip.hide;
+}
+function pintarBloque() {
+  const vis = new Set(salasVis().map(s => P.salas.indexOf(s)));
+  let k = 0; Object.keys(occ).forEach(key => { const [si, d, b] = key.split("|").map(Number); if (d === dia && b === bloque && vis.has(si)) k++; });
+  const sin = sinSala();
+  encabezado(k, `de ${vis.size} espacios ocupados`, kpi(sin.length, "secciones sin sala") + kpi(Math.round(k / Math.max(1, vis.size) * 100) + " %", "de ocupación"),
+    `${nombre(st.campus)} · ${DLARGO[dia]} ${HORAS[bloque]} · ${nomPerProg()} ${st.anio} · escenario base${st.rango === "todos" ? "" : " · espacios de " + conOMas(st.rango)}`);
+  pintarSpark();
+  if (st.lente === "salas") {
+    document.querySelectorAll(".u[data-i]").forEach(u => {
+      const o = occ[u.dataset.i + "|" + dia + "|" + bloque];
+      u.classList.toggle("on", !!o); u.style.background = o ? tono(o, P.salas[u.dataset.i].CAPACIDAD) : "";
+    });
+    $("bjT").textContent = `Sin sala · ${sin.length}`;
+    $("bj").innerHTML = sin.length ? [...P.rangos.keys()].reverse().map(r => { const g = sin.filter(d => d.rg === r); if (!g.length) return "";
+      return `<div class="rg"><div class="rgt"><span>piden ${P.rangos[r]}</span><b>${g.length}</b></div><div class="cuad">${g.map(d => `<i class="u sin" data-d="${sin.indexOf(d)}"></i>`).join("")}</div></div>`; }).join("") : `<p class="vacio">Todas las secciones de este bloque tienen sala.</p>`;
+    $("bj").onmousemove = e => { const j = e.target.dataset.d; if (j === undefined) return tip.hide(); const d = sin[j];
+      tip.show(e, `<b>Sección sin sala</b><br>${d.mat} · ${d.ins} inscritos (estimados)<br><span class="m">Pide ${d.cl === "SALA" ? "sala" : "laboratorio"} de ${P.rangos[d.rg]}</span>`); };
+    $("bj").onmouseleave = tip.hide;
+  } else if (marcoListo) {
+    const d = $("emb").contentDocument, b = d.getElementById("bloque"), bt = d.querySelector(`#dias button[data-v="${P.dias[dia]}"]`);
+    if (bt) bt.click();
+    if (b) { b.value = bloque; b.dispatchEvent(new Event("input")); }
+  }
+}
+
+// ---------- lente Salas
+function salas() {
+  $("vista").className = "col";
+  const grupos = ["SALA", "LABORATORIO"].map(cl => [cl, salasVis().filter(s => s.CLASE === cl)]).filter(g => g[1].length);
+  $("vista").innerHTML = BARRA_DIA + `<div class="sal"><div class="grs" id="grs">${grupos.map(([cl, g]) => {
+    const ed = [...new Set(g.map(s => s.EDIFICIO))].sort();
+    return `<section class="card" style="flex:${g.length} 1 0"><h3>${cl === "SALA" ? "Salas" : "Laboratorios"} · ${g.length}</h3><div class="edifs">${ed.map(e => {
+      const rs = g.filter(s => s.EDIFICIO === e).sort((a, b) => b.CAPACIDAD - a.CAPACIDAD), cols = Math.ceil(Math.sqrt(rs.length * 1.6));
+      return `<div class="edif"><span>${e}</span><div class="cells" style="grid-template-columns:repeat(${cols},var(--u))">${rs.map(s => `<i class="u" data-i="${P.salas.indexOf(s)}"></i>`).join("")}</div></div>`;
+    }).join("")}</div></section>`;
+  }).join("")}</div><section class="card bandeja"><h3 id="bjT"></h3><div id="bj"></div></section></div>` + LEY_PROG;
+  enlazarBarra();
+  const g = $("grs");
+  g.onmousemove = e => { const i = e.target.dataset.i; if (i === undefined) return tip.hide(); const s = P.salas[i], o = occ[i + "|" + dia + "|" + bloque];
+    tip.show(e, `<b>${s.CODIGO}</b> · ${s.EDIFICIO} · ${s.CLASE === "SALA" ? "sala" : "laboratorio"}<br><span class="m">Capacidad ${s.CAPACIDAD} · rango ${s.RANGO}</span><br>` +
+      (o ? `${o.mat} · ${o.ins} inscritos (estimados)<br><span class="m">Llenado ${Math.round(o.ins / Math.max(1, s.CAPACIDAD) * 100)} %${o.sobre ? " · sobrecupo" : ""}</span>` : "Libre en este bloque")); };
+  g.onmouseleave = tip.hide;
+  for (let u = 30; u >= 8; u--) { g.style.setProperty("--u", u + "px"); if ([...g.querySelectorAll(".edifs")].every(e => e.scrollHeight <= e.clientHeight + 1)) break; }
+  pintarBloque();
+}
+
+// ---------- lente 3D: la escena es la de la maqueta, sin sus textos ni controles; se maneja desde aquí
+const SIN_HUD = `.hud,.capas,.bar,.tl,.tr,.ley,.src,.nota3d{display:none!important}`;
+// encuadre al marco: la maqueta encuadra una esfera, que en un marco ancho deja el campus chico y cortado; aquí se ajusta a lo que se ve,
+// dejando sitio arriba para las secciones sin sala que flotan
+const FIN_ENCUADRE = "controls.maxDistance = dist * 1.8; controls.minDistance = 15; controls.update();";
+const ENCUADRE = `
+  const pts3 = []; [caja.min.x, caja.max.x].forEach(x => [caja.min.y, caja.max.y + 30].forEach(y => [caja.min.z, caja.max.z].forEach(z => pts3.push(new THREE.Vector3(x, y, z)))));
+  for (let it = 0; it < 10; it++) {
+    camera.updateMatrixWorld(); camera.updateProjectionMatrix();
+    let x0 = 9, y0 = 9, x1 = -9, y1 = -9;
+    pts3.forEach(p => { const v = p.clone().project(camera); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); });
+    const d3 = camera.position.distanceTo(controls.target), hh = Math.tan(fv) * d3;
+    const off = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar((x0 + x1) / 2 * hh * camera.aspect)
+      .add(new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).multiplyScalar((y0 + y1) / 2 * hh));
+    controls.target.add(off); camera.position.add(off);
+    const nd = d3 * Math.max((x1 - x0) / 2, (y1 - y0) / 2) / 0.9;
+    camera.position.sub(controls.target).setLength(nd).add(controls.target); camera.lookAt(controls.target);
+  }
+  controls.update();`;
+const escena = (html, estado) => html
+  .replace("new URLSearchParams(location.search)", () => `new URLSearchParams(${JSON.stringify("embed=1&" + new URLSearchParams(estado))})`)
+  .replace("</head>", () => `<style>${SIN_HUD}</style></head>`)
+  .replace(FIN_ENCUADRE, () => FIN_ENCUADRE + ENCUADRE);
+function tres() {
+  const carpeta = st.paleta === "arena" ? "maquetas_visualizacion_arena" : "maquetas_visualizacion";
+  const base = `../${carpeta}/A4_campus_3d_proyectado_${st.campus}.html`;
+  const estado = { campus: st.campus, anio: st.anio, per: st.per, esc: st.esc, rango: st.rango };
+  if (ultimoSrc === base && $("emb")) {
+    if (marcoListo) $("emb").contentWindow.postMessage({ cirilo: true, estado }, "*");
+    pintarBloque(); return;
+  }
+  ultimoSrc = base; marcoListo = false;
+  $("vista").className = "col";
+  $("vista").innerHTML = BARRA_DIA + `<div class="marco"><iframe id="emb" title="Campus 3D de ${nombre(st.campus)}" ></iframe>
+    <div class="ctl3d"><div class="seg" id="capas"><button data-v="clasica" aria-pressed="true">Campus</button><button data-v="entorno" aria-pressed="false">Entorno</button></div><button class="pildora" id="rot" aria-pressed="false">Rotar</button><button class="pildora" id="reset">Centrar</button></div></div>` + LEY_PROG;
+  enlazarBarra();
+  const hijo = s => $("emb").contentDocument.querySelector(s);
+  $("capas").onclick = e => { const v = e.target.dataset.v; if (!v || !marcoListo) return; hijo(`.modo[data-v="${v}"]`).click(); $("capas").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", b === e.target)); };
+  $("rot").onclick = () => { if (!marcoListo) return; hijo("#rot").click(); $("rot").setAttribute("aria-pressed", hijo("#rot").getAttribute("aria-pressed")); };
+  $("reset").onclick = () => { if (marcoListo) hijo("#reset").click(); };
+  const pedido = base;
+  fetch(base).then(r => r.text()).then(html => {
+    if (ultimoSrc !== pedido || !$("emb")) return;
+    $("emb").onload = () => { marcoListo = true; pintarBloque(); };
+    $("emb").srcdoc = escena(html, estado);
+  });
+  pintarBloque();
+}
+
+function render() {
+  tip.hide();                                                // lo que estaba bajo el mouse se redibuja y ya no avisa que salió
+  document.querySelectorAll("#lentes button").forEach(b => b.setAttribute("aria-selected", b.dataset.l === st.lente));
+  document.querySelectorAll("#esc button").forEach(b => b.setAttribute("aria-pressed", b.dataset.e === st.esc));
+  $("per").value = st.per; $("rango").value = st.rango;
+  rail(); linea();
+  if (st.lente !== "campus3d") ultimoSrc = "";
+  if (usaProg()) {
+    if (!(window.PROG && window.PROG[st.campus])) {
+      const c = st.campus; $("vista").className = ""; $("vista").innerHTML = `<p class="vacio">Cargando ${nombre(c)}…</p>`;
+      cargarProg(c, render); return;
+    }
+    cargarOcc();
+  }
+  ({ panorama, semana, salas, campus3d: tres })[st.lente]();
+}
+let espera; addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(() => { if (st.lente !== "campus3d") render(); else pintarSpark(); }, 120); });
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (st.lente === "panorama") render(); });
+</script>
+</body>
+</html>

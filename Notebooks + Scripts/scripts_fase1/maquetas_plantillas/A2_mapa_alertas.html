@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa de alertas</title>
+<style>/*__CSS__*/
+.cals { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.cals.uno { grid-template-columns: minmax(260px, 480px); }
+.cal h3 { margin: 0; font-size: 13px; font-weight: 650; }
+.cal .s { margin: 0 0 6px; font-size: 11px; color: var(--text-secondary); }
+.cal .valida { font-size: 11px; color: #9c5a00; margin-top: 4px; }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <p class="kicker">Sóstrato el Arquitecto · simulación de alertas · A2</p>
+  <h1>¿En qué horas de la semana no cabe la programación?</h1>
+  <p class="dek">Cada calendario es una semana del período elegido: columnas de lunes a sábado y filas por bloque. El color es el <b>semáforo</b> de la probabilidad de que la demanda supere las salas disponibles de su tamaño. Las celdas sin alerta muestran en azul qué parte de las salas se espera ocupar. Presione ▶ en la demo para ver cómo se extienden las alertas año a año.</p>
+  <div class="controls" id="ctl"></div>
+  <div id="avisos"></div>
+  <div class="controls">
+    <span>Clase de espacio</span><div class="seg" id="clase"><button aria-pressed="true" data-v="SALA">Salas</button><button aria-pressed="false" data-v="LABORATORIO">Laboratorios</button></div>
+    <span>Detalle</span><div class="seg" id="modo"><button aria-pressed="true" data-v="bloque">Por bloque</button><button aria-pressed="false" data-v="franja">Por franja</button></div>
+  </div>
+  <div class="hero" id="hero"></div>
+  <div class="sem" id="ley" style="margin-bottom:12px"></div>
+  <div class="cals" id="cals"></div>
+  <details><summary>Ver tabla: las 15 celdas más probables de saturar</summary><div id="tabla"></div></details>
+  <p class="fuente">Fuente: BBDD/OCUPACION_Y_DEFICIT y OCUPACION_POR_RANGO (Modelos.ipynb, 28-10-2026; D19: naive escalado desde 2028). Semáforo sobre PROB_SATURA_TAMANO (con un tamaño elegido, PROB_SATURA_ACUM de ese tamaño o más): vigilancia ≥ 10 %, alerta ≥ 25 %, crítica ≥ 50 %. Esa probabilidad ya incorpora la incertidumbre de la banda conformal. La banda P10–P90 de cada celda se lee sola, no se suma entre celdas. El punto blanco marca que lo que falta son salas grandes (41 o más). Por franja: mañana bloques 0–8, tarde 9–14, vespertino 15–19, con la peor celda de cada franja. Dirección de Ingeniería de Datos · UNIV.</p>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+/*__ESTADO_JS__*/
+const A = /*__DATOS__*/;
+const SEDES = /*__SEDES__*/;
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+const nombre = c => nice((SEDES[c] || c).replace(/^.*?[-–]\s*/, ""));
+const HORAS = ["antes 08:00", "08:00", "08:40", "09:30", "10:10", "11:00", "11:40", "12:30", "13:10", "14:40", "15:20", "16:10", "16:50", "17:35", "18:15", "19:00", "19:40", "20:25", "21:05", "21:50"];
+const DCORTO = ["L", "M", "M", "J", "V", "S"], DLARGO = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const FRANJAS = [["Mañana", 0, 8], ["Tarde", 9, 14], ["Vespertino", 15, 19]];
+const NC = A.campos.length, F = Object.fromEntries(A.campos.map((c, i) => [c, i]));
+const OSCURO = document.documentElement.dataset.theme === "dark" ||
+  (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+// sin alerta: frecuencia de uso esperada (P50 ÷ espacios); en oscuro, lo vacío queda cerca del fondo
+const AZUL = OSCURO ? ["#22262e", "#1f3350", "#1c4a85", "#2a66b5"] : ["#e8f0fb", "#cde2fb", "#9ec5f4", "#6da7ec"];
+const T = tooltip();
+let clase = "SALA", modo = "bloque";
+
+function celda(arr, d, b) {                                  // valores de una celda según el filtro de tamaño
+  const o = (d * 20 + b) * NC, r = A.rangos.indexOf(ESTADO.rango);
+  const prob = r < 0 ? arr[o + F.PT] : arr[o + F["A" + r]];
+  return { prob, rc: arr[o + F.RC], p10: arr[o + F.P10] / 10, p50: arr[o + F.P50] / 10, p90: arr[o + F.P90] / 10, dem: r < 0 ? arr[o + F.P50] / 10 : arr[o + F["D" + r]] / 10 };
+}
+function color(v, uso) {
+  const n = nivel(v); if (n) return NIVELES[n].c;
+  return AZUL[Math.min(3, Math.floor(Math.max(0, uso) * 4))];
+}
+function render() {
+  pintarAvisos();
+  const per = clavePer(), esc = ESTADO.esc, r = A.rangos.indexOf(ESTADO.rango);
+  const lista = (ESTADO.campus === "TODOS" ? A.campus : [ESTADO.campus]).filter(c => A.celdas[`${c}|${clase}|${per}|${esc}`]);
+  const box = document.getElementById("cals"); box.className = "cals" + (lista.length === 1 ? " uno" : ""); box.innerHTML = "";
+  let tot = [0, 0, 0, 0], top = [];
+  const filas = modo === "bloque" ? Array.from({ length: 20 }, (_, b) => [b, b]) : FRANJAS.map(f => [f[1], f[2], f[0]]);
+  const ord = lista.map(c => { const arr = A.celdas[`${c}|${clase}|${per}|${esc}`]; let n = 0;
+    for (let d = 0; d < 6; d++) for (let b = 0; b < 20; b++) if (celda(arr, d, b).prob >= 25) n++; return [c, arr, n]; }).sort((a, b) => b[2] - a[2]);
+  ord.forEach(([c, arr]) => {
+    const esp = r < 0 ? A.cap[`${c}|${clase}`] : A.esp[`${c}|${clase}`][r];
+    const cw = lista.length === 1 ? 52 : 24, ch = modo === "bloque" ? (lista.length === 1 ? 20 : 12) : (lista.length === 1 ? 54 : 30);
+    const ml = modo === "bloque" ? 34 : 64, mt = 14, W = ml + 6 * cw, H = mt + filas.length * ch + 4;
+    let s = `<defs><pattern id="ex${c}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="rgba(0,0,0,.18)" stroke-width="2"/></pattern></defs>`;
+    s += DCORTO.map((d, i) => `<text x="${ml + i * cw + cw / 2}" y="10" text-anchor="middle">${d}</text>`).join("");
+    let n25 = 0;
+    filas.forEach(([b0, b1, nom], fi) => {
+      const ly = mt + fi * ch;
+      if (modo === "franja") s += `<text x="${ml - 6}" y="${ly + ch / 2 + 4}" text-anchor="end">${nom}</text>`;
+      else if ([1, 5, 9, 13, 17].includes(b0)) s += `<text x="${ml - 4}" y="${ly + ch / 2 + 3}" text-anchor="end" font-size="9">${HORAS[b0]}</text>`;
+      for (let d = 0; d < 6; d++) {
+        let best = null, bb = b0;
+        for (let b = b0; b <= b1; b++) { const v = celda(arr, d, b); if (!best || v.prob > best.prob || (v.prob === best.prob && v.p50 > best.p50)) { best = v; bb = b; } }
+        const uso = esp ? best.dem / esp : 0, n = nivel(best.prob);
+        if (modo === "bloque") { tot[n]++; if (best.prob >= 25) n25++; top.push({ c, d, b: bb, ...best, esp }); }
+        s += `<rect data-k="${d}|${bb}" x="${ml + d * cw}" y="${ly}" width="${cw - 2}" height="${ch - 2}" rx="2" fill="${color(best.prob, uso)}"/>`;
+        if (n >= 2 && r < 0 && best.rc >= 2) s += `<circle cx="${ml + d * cw + cw / 2 - 1}" cy="${ly + ch / 2 - 1}" r="${Math.min(3, ch / 4)}" fill="#fff" pointer-events="none"/>`;
+      }
+    });
+    if (ESTADO.anio === 2031) s += `<rect x="${ml}" y="${mt}" width="${6 * cw}" height="${filas.length * ch}" fill="url(#ex${c})" pointer-events="none"/>`;
+    const el = document.createElement("div"); el.className = "card cal";
+    const labTPC = c === "C01" && clase === "LABORATORIO" ? `<div class="valida">⚠ laboratorios de 60 o más: a validar con infraestructura (puede ser gestión de grupos)</div>` : "";
+    el.innerHTML = `<h3>${nombre(c)}</h3><p class="s">${c} · ${esp || 0} ${clase === "SALA" ? "salas" : "labs."}${r < 0 ? "" : " de " + ESTADO.rango + " o más"} · ${n25} celdas en alerta</p>
+      <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Mapa de alertas de ${c}">${s}</svg>${labTPC}`;
+    el.querySelector("svg").addEventListener("mousemove", ev => {
+      const k = ev.target.dataset && ev.target.dataset.k; if (!k) return T.hide();
+      const [d, b] = k.split("|").map(Number), v = celda(arr, d, b), n = nivel(v.prob);
+      T.show(ev, `<b>${nombre(c)}</b> · ${clase === "SALA" ? "salas" : "laboratorios"}<br>${DLARGO[d]} · bloque ${b} (${HORAS[b]})${modo === "franja" ? " · peor bloque de la franja" : ""}<br>` +
+        `${n ? NIVELES[n].i + " <b>" + NIVELES[n].n + "</b>" : "sin alerta"} · prob. de saturar <b>${v.prob} %</b><br>` +
+        `<span class="m">Salas necesarias: P50 ${v.dem.toFixed(1).replace(".", ",")} de ${esp}${r < 0 ? ` · banda P10–P90 ${v.p10.toFixed(1).replace(".", ",")}–${v.p90.toFixed(1).replace(".", ",")} (se lee sola, no se suma)` : ""}</span>` +
+        (r < 0 ? `<br><span class="m">Rango más exigido: ${A.rangos[v.rc]}</span>` : "") +
+        (c === "C01" && clase === "LABORATORIO" && v.rc === 3 && n ? `<br><span class="m">⚠ laboratorio 60+: a validar con infraestructura</span>` : "") +
+        (ESTADO.anio === 2031 ? `<br><span class="m">2031 extrapolado</span>` : ""));
+    });
+    el.querySelector("svg").addEventListener("mouseleave", T.hide);
+    box.appendChild(el);
+  });
+  if (!ord.length) box.innerHTML = `<p class="dek">No hay datos de ${clase === "SALA" ? "salas" : "laboratorios"} para esta selección.</p>`;
+  document.getElementById("hero").innerHTML =
+    `<div><div class="n">${tot[2] + tot[3]}</div><div class="l">celdas en <b>alerta o crítica</b> · ${clase === "SALA" ? "salas" : "laboratorios"} · ${nomPer(ESTADO.per)} ${ESTADO.anio} · escenario ${esc}</div></div>
+     <div><div class="n">${tot[3]}</div><div class="l">${NIVELES[3].i} críticas (≥ 50 %)</div></div><div><div class="n">${tot[1]}</div><div class="l">${NIVELES[1].i} en vigilancia (10–25 %)</div></div>`;
+  document.getElementById("ley").innerHTML = NIVELES.slice(1).map(n => `<span><i style="background:${n.c}"></i>${n.i} ${n.n}</span>`).join("") +
+    `<span><i style="background:${AZUL[1]}"></i>sin alerta: tono = uso esperado</span><span><i style="background:#fff;box-shadow:inset 0 0 0 4px ${NIVELES[2].c}"></i>punto blanco: faltan salas grandes (41+)</span>`;
+  top.sort((a, b) => b.prob - a.prob);
+  document.getElementById("tabla").innerHTML = "<table><tr><th>Campus</th><th>Día</th><th>Bloque</th><th>Prob.</th><th>Nivel</th><th>P50 / espacios</th><th>Rango</th></tr>" +
+    top.slice(0, 15).map(t => `<tr><td>${t.c}</td><td>${DLARGO[t.d]}</td><td>${t.b} (${HORAS[t.b]})</td><td>${t.prob} %</td><td>${NIVELES[nivel(t.prob)].n}</td><td>${t.dem.toFixed(1)} / ${t.esp}</td><td>${A.rangos[t.rc]}</td></tr>`).join("") + "</table>";
+}
+function seg(id, f) { document.querySelectorAll(`#${id} button`).forEach(b => b.onclick = () => {
+  document.querySelectorAll(`#${id} button`).forEach(o => o.setAttribute("aria-pressed", o === b)); f(b.dataset.v); render(); }); }
+seg("clase", v => clase = v); seg("modo", v => modo = v);
+alCambiar(render);
+render();
+</script>
+</body>
+</html>

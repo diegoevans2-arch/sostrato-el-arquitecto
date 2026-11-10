@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala por sala</title>
+<style>/*__CSS__*/
+.top { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: end; margin-bottom: 14px; }
+@media (max-width: 760px) { .top { grid-template-columns: 1fr; } }
+.big { font-size: 56px; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums; }
+.big small { font-size: 20px; color: var(--text-secondary); font-weight: 400; }
+.cuando { font-size: 15px; color: var(--text-secondary); margin-top: 6px; }
+.grupo { margin: 0 0 14px; }
+.grupo h3 { font-size: 13px; font-weight: 650; margin: 0 0 6px; color: var(--text-secondary); }
+.edif { display: inline-flex; flex-direction: column; margin: 0 14px 10px 0; vertical-align: top; }
+.edif span { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+.edif .cells { display: grid; grid-template-columns: repeat(8, 16px); gap: 3px; }
+.u { width: 16px; height: 16px; border-radius: 3px; background: var(--free); box-shadow: inset 0 0 0 1px var(--free-stroke); transition: background .25s; }
+.u.on { box-shadow: none; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.play { border: 1px solid var(--grid); background: var(--surface-1); border-radius: 6px; padding: 6px 12px; font: inherit; cursor: pointer; color: var(--text-primary); }
+.ley { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); margin: 6px 0 14px; align-items: center; }
+.ley i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <p class="kicker">Sóstrato el Arquitecto · maqueta 3</p>
+  <h1>Sala por sala: cómo se llena un campus durante el día</h1>
+  <p class="dek">Cada cuadrado es una sala o un laboratorio real del campus, agrupado por edificio. Un cuadrado se enciende cuando tiene clases en ese bloque, y su tono indica qué tan lleno está respecto de su capacidad. Avance por el día o presione reproducir.</p>
+  <p class="aviso">Datos reales de la semana del <b>13 al 18 de abril de 2026</b> (pregrado y AV). En el producto final, esta vista mostraría la programación sintética del semestre y el escenario elegidos.</p>
+  <div class="controls">
+    <span class="solo-suelta">Campus</span><select id="campus" class="play solo-suelta"></select>
+    <span>Día</span><div class="seg" id="dia"></div>
+    <button class="play" id="play">▶ Reproducir</button>
+  </div>
+  <div class="top card">
+    <div><div class="big" id="big"></div><div class="cuando" id="cuando"></div></div>
+    <div><input type="range" id="bloque" min="1" max="19" value="3" aria-label="Bloque horario"><svg id="spark" viewBox="0 0 600 70" width="100%" preserveAspectRatio="none"></svg></div>
+  </div>
+  <div class="ley"><span><i style="background:var(--free);box-shadow:inset 0 0 0 1px var(--free-stroke)"></i>libre</span>
+    <span><i style="background:#9ec5f4"></i>ocupada, menos de 50 % de su capacidad</span>
+    <span><i style="background:#3987e5"></i>50–90 %</span><span><i style="background:#104281"></i>90 % o más</span></div>
+  <div id="salas"></div>
+  <p class="fuente">Fuente: programación detallada (Cirilo, parquet del 25-09-2026) y planta física vigente (salas y laboratorios activos). Frecuencia de uso = espacios ocupados ÷ espacios del campus. Llenado (ocupación, en el sentido estándar de gestión de espacios) = inscritos de la sección ÷ capacidad máxima de la sala. Dirección de Ingeniería de Datos · UNIV.</p>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const QS = new URLSearchParams(location.search);
+const FILTRO = (QS.get("campus") || "TODOS").toUpperCase();
+if (QS.has("embed")) document.documentElement.classList.add("embed");
+const DATA = /*__DATOS__*/;
+const SEDES = /*__SEDES__*/;
+const HORAS = ["08:00","08:40","09:30","10:10","11:00","11:40","12:30","13:10","14:40","15:20","16:10","16:50","17:35","18:15","19:00","19:40","20:25","21:05","21:50"];
+const DIAS = DATA.dias, DNOM = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const tip = document.getElementById("tip");
+const occ = {};
+DATA.ocupacion.forEach(o => occ[o.SALA_ID + "|" + o.DIA_SESION + "|" + o.BLOQUE] = o);
+const campusList = [...new Set(DATA.salas.map(s => s.CAMPUS))]
+  .map(c => [c, DATA.salas.filter(s => s.CAMPUS === c).length]).filter(d => d[1] >= 10).sort((a, b) => b[1] - a[1]);
+let campus = campusList.some(c => c[0] === FILTRO) ? FILTRO : campusList[0][0], dia = "MIERCOLES", bloque = 3, timer = null;
+
+const sel = document.getElementById("campus");
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+sel.innerHTML = campusList.map(([c, n]) => `<option value="${c}"${c === campus ? " selected" : ""}>${nice(SEDES[c] || c)} (${n})</option>`).join("");
+sel.onchange = () => { campus = sel.value; dibujar(); };
+document.getElementById("dia").innerHTML = DIAS.map((d, i) => `<button data-v="${d}" aria-pressed="${d === dia}">${DNOM[i].slice(0, 3)}</button>`).join("");
+document.querySelectorAll("#dia button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#dia button").forEach(o => o.setAttribute("aria-pressed", o === b)); dia = b.dataset.v; pintar(); });
+const rng = document.getElementById("bloque");
+rng.oninput = () => { bloque = +rng.value; pintar(); };
+
+function tono(o, cap) {
+  const f = cap > 0 ? o.INSCRITOS / cap : 0.5;
+  return f >= 0.9 ? "#104281" : f >= 0.5 ? "#3987e5" : "#9ec5f4";
+}
+function salasCampus() { return DATA.salas.filter(s => s.CAMPUS === campus); }
+
+function dibujar() {
+  const ss = salasCampus(), box = document.getElementById("salas"); box.innerHTML = "";
+  ["SALA", "LABORATORIO"].forEach(cl => {
+    const g = ss.filter(s => s.CLASE === cl); if (!g.length) return;
+    const ed = [...new Set(g.map(s => s.EDIFICIO))].sort();
+    const div = document.createElement("div"); div.className = "grupo card";
+    div.innerHTML = `<h3>${cl === "SALA" ? "Salas" : "Laboratorios"} · ${g.length}</h3>` + ed.map(e =>
+      `<div class="edif"><span>${e}</span><div class="cells">` +
+      g.filter(s => s.EDIFICIO === e).sort((a, b) => b.CAPACIDAD - a.CAPACIDAD)
+        .map(s => `<div class="u" data-id="${s.SALA_ID}" data-cap="${s.CAPACIDAD}"></div>`).join("") + "</div></div>").join("");
+    box.appendChild(div);
+  });
+  box.onmousemove = ev => {
+    const id = ev.target.dataset && ev.target.dataset.id; if (!id) { tip.style.opacity = 0; return; }
+    const o = occ[id + "|" + dia + "|" + bloque], cap = +ev.target.dataset.cap;
+    tip.innerHTML = `<b>${id.replace("·", " · ")}</b><br><span class="m">Capacidad ${cap}</span><br>` +
+      (o ? `${o.ASIG} (${o.COMP}) · ${o.INSCRITOS} inscritos<br><span class="m">Llenado ${Math.round(o.INSCRITOS / Math.max(cap, 1) * 100)} %</span>` : "Libre en este bloque");
+    tip.style.left = ev.clientX + 14 + "px"; tip.style.top = ev.clientY + 14 + "px"; tip.style.opacity = 1;
+  };
+  box.onmouseleave = () => tip.style.opacity = 0;
+  pintar();
+}
+
+function ocupadas(b) { return salasCampus().filter(s => occ[s.SALA_ID + "|" + dia + "|" + b]).length; }
+
+function pintar() {
+  rng.value = bloque;
+  document.querySelectorAll(".u").forEach(u => {
+    const o = occ[u.dataset.id + "|" + dia + "|" + bloque];
+    u.classList.toggle("on", !!o); u.style.background = o ? tono(o, +u.dataset.cap) : "";
+  });
+  const n = salasCampus().length, k = ocupadas(bloque);
+  document.getElementById("big").innerHTML = `${k}<small> de ${n}</small>`;
+  document.getElementById("cuando").innerHTML = `espacios ocupados · frecuencia de uso <b>${Math.round(k / n * 100)} %</b><br>${DNOM[DIAS.indexOf(dia)]} · bloque ${bloque} · ${HORAS[bloque - 1]}`;
+  const serie = Array.from({length: 19}, (_, i) => ocupadas(i + 1)), W = 600, H = 70, bw = W / 19;
+  document.getElementById("spark").innerHTML = serie.map((v, i) =>
+    `<rect x="${i * bw + 1}" y="${H - 4 - v / n * (H - 8)}" width="${bw - 2}" height="${v / n * (H - 8)}" rx="2" fill="${i + 1 === bloque ? "var(--accent)" : "var(--band)"}"/>`).join("") +
+    `<line x1="0" x2="${W}" y1="4" y2="4" stroke="var(--critical)" stroke-dasharray="4 3"/>`;
+}
+
+document.getElementById("play").onclick = () => {
+  const btn = document.getElementById("play");
+  if (timer) { clearInterval(timer); timer = null; btn.textContent = "▶ Reproducir"; return; }
+  btn.textContent = "❚❚ Pausa"; bloque = 1; pintar();
+  timer = setInterval(() => { bloque = bloque % 19 + 1; pintar(); if (bloque === 19) { clearInterval(timer); timer = null; btn.textContent = "▶ Reproducir"; } }, 700);
+};
+dibujar();
+</script>
+</body>
+</html>

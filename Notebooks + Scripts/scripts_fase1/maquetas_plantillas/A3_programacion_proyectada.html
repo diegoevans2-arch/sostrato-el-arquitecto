@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Programación proyectada</title>
+<style>/*__CSS__*/
+.top { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: end; margin-bottom: 14px; }
+@media (max-width: 760px) { .top { grid-template-columns: 1fr; } }
+.big { font-size: 52px; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums; }
+.big small { font-size: 18px; color: var(--text-secondary); font-weight: 400; }
+.cuando { font-size: 14px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; }
+.grupo { margin: 0 0 12px; }
+.grupo h3 { font-size: 13px; font-weight: 650; margin: 0 0 6px; color: var(--text-secondary); }
+.edif { display: inline-flex; flex-direction: column; margin: 0 14px 10px 0; vertical-align: top; }
+.edif span { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+.cells { display: grid; grid-template-columns: repeat(8, 16px); gap: 3px; }
+.u { width: 16px; height: 16px; border-radius: 3px; background: var(--free); box-shadow: inset 0 0 0 1px var(--free-stroke); }
+.u.on { box-shadow: none; }
+.u.sin { background: #d03b3b; box-shadow: none; }
+.bandeja { border: 1px dashed #d03b3b; }
+.bandeja .rg { display: inline-flex; flex-direction: column; margin: 0 18px 8px 0; vertical-align: top; }
+.bandeja .rg span { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.play { border: 1px solid var(--grid); background: var(--surface-1); border-radius: 6px; padding: 6px 12px; font: inherit; cursor: pointer; color: var(--text-primary); }
+.nota { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 10px; }
+.nota:empty { display: none; }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <p class="kicker">Sóstrato el Arquitecto · simulación de alertas · A3</p>
+  <h1 id="titulo">Programación proyectada, sala por sala</h1>
+  <p class="dek">Cada cuadrado es una sala o laboratorio activo del campus. Se enciende si la <b>programación sintética</b> del modelo le asigna una sección en ese bloque. El tono indica qué tan llena queda y el <b>naranja</b> marca el sobrecupo tolerado. Las secciones que no encuentran sala de su tamaño quedan en la <b>bandeja roja</b>.</p>
+  <div class="controls" id="ctl"></div>
+  <div id="avisos"></div>
+  <p class="nota" id="nota"></p>
+  <div class="controls">
+    <span>Día</span><div class="seg" id="dia"></div>
+    <button class="play" id="play">▶ Reproducir el día</button>
+  </div>
+  <div class="top card">
+    <div><div class="big" id="big"></div><div class="cuando" id="cuando"></div></div>
+    <div><input type="range" id="bloque" min="1" max="19" value="3" aria-label="Bloque horario"><svg id="spark" viewBox="0 0 600 80" width="100%" preserveAspectRatio="none"></svg></div>
+  </div>
+  <div class="sem" style="margin:6px 0 12px">
+    <span><i style="background:var(--free);box-shadow:inset 0 0 0 1px var(--free-stroke)"></i>libre</span>
+    <span><i style="background:#9ec5f4"></i>ocupada · menos de 50 % de su capacidad</span><span><i style="background:#3987e5"></i>50–90 %</span><span><i style="background:#1c5cab"></i>90–100 %</span>
+    <span><i style="background:#ec835a"></i>sobrecupo tolerado</span><span><i style="background:#d03b3b"></i>sección sin sala (déficit)</span>
+  </div>
+  <div id="bandeja"></div>
+  <div id="salas"></div>
+  <p class="fuente">Fuente: BBDD/PROGRAMACION_SINTETICA (escenario base) y OFERTA_ESPACIOS (espacios activos), Modelos.ipynb, 28-10-2026. Es una programación simulada: el valor está en cuánto falta y de qué tamaño, no en qué sala exacta queda cada sección. Dirección de Ingeniería de Datos · UNIV.</p>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+/*__ESTADO_JS__*/
+const P = /*__DATOS__*/;
+const SEDES = /*__SEDES__*/;
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+const HORAS = ["antes 08:00", "08:00", "08:40", "09:30", "10:10", "11:00", "11:40", "12:30", "13:10", "14:40", "15:20", "16:10", "16:50", "17:35", "18:15", "19:00", "19:40", "20:25", "21:05", "21:50"];
+const DNOM = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const T = tooltip();
+let dia = 2, bloque = 3, timer = null, occ = {}, def = [];
+document.getElementById("titulo").textContent = "Programación proyectada · " + nice((SEDES[P.campus] || P.campus).replace(/^.*?[-–]\s*/, ""));
+
+function periodo() {                                      // la programación sintética existe para los semestres de pregrado del escenario base
+  const notas = [];
+  let per = ESTADO.per;
+  if (![10, 20].includes(per)) { notas.push(`La programación sintética cubre los semestres de pregrado: se muestra el 1.er semestre (${nomPer(per)} se ve en el mapa de alertas).`); per = 10; }
+  if (ESTADO.esc !== "base") notas.push("La programación sintética existe solo para el escenario base.");
+  document.getElementById("nota").textContent = notas.join(" ");
+  return String(ESTADO.anio * 100 + per);
+}
+function cargar() {
+  const k = periodo(); occ = {}; def = [];
+  const o = P.ocup[k] || [];
+  for (let i = 0; i < o.length; i += 6) {
+    const key = o[i] + "|" + o[i + 1] + "|" + o[i + 2], prev = occ[key];
+    if (!prev || o[i + 3] > prev.ins) occ[key] = { ins: o[i + 3], mat: P.materias[o[i + 4]], sobre: o[i + 5] || (prev && prev.sobre) };
+  }
+  const d = P.deficit[k] || [];
+  for (let i = 0; i < d.length; i += 6) def.push({ dia: d[i], b: d[i + 1], rg: d[i + 2], ins: d[i + 3], mat: P.materias[d[i + 4]], cl: P.clases[d[i + 5]] });
+}
+const rangoMin = () => { const r = P.rangos.indexOf(ESTADO.rango); return r < 0 ? 0 : r; };
+const salasVis = () => P.salas.filter(s => P.rangos.indexOf(s.RANGO) >= rangoMin());
+function tono(o, cap) {
+  if (o.sobre) return "#ec835a";
+  const f = cap > 0 ? o.ins / cap : 0.5;
+  return f >= 0.9 ? "#1c5cab" : f >= 0.5 ? "#3987e5" : "#9ec5f4";
+}
+function dibujar() {
+  const box = document.getElementById("salas"); box.innerHTML = "";
+  ["SALA", "LABORATORIO"].forEach(cl => {
+    const g = salasVis().filter(s => s.CLASE === cl); if (!g.length) return;
+    const ed = [...new Set(g.map(s => s.EDIFICIO))].sort();
+    const div = document.createElement("div"); div.className = "grupo card";
+    div.innerHTML = `<h3>${cl === "SALA" ? "Salas" : "Laboratorios"} · ${g.length}${rangoMin() ? " de " + ESTADO.rango + " o más" : ""}</h3>` + ed.map(e =>
+      `<div class="edif"><span>${e}</span><div class="cells">` + g.filter(s => s.EDIFICIO === e).sort((a, b) => b.CAPACIDAD - a.CAPACIDAD)
+        .map(s => `<div class="u" data-i="${P.salas.indexOf(s)}"></div>`).join("") + "</div></div>").join("");
+    box.appendChild(div);
+  });
+  box.onmousemove = ev => {
+    const i = ev.target.dataset && ev.target.dataset.i; if (i === undefined) return T.hide();
+    const s = P.salas[i], o = occ[i + "|" + dia + "|" + bloque];
+    T.show(ev, `<b>${s.CODIGO}</b> · ${s.EDIFICIO} · ${s.CLASE === "SALA" ? "sala" : "laboratorio"}<br><span class="m">Capacidad ${s.CAPACIDAD} · rango ${s.RANGO}</span><br>` +
+      (o ? `${o.mat} · ${o.ins} inscritos (estimados)<br><span class="m">Llenado ${Math.round(o.ins / Math.max(1, s.CAPACIDAD) * 100)} %${o.sobre ? " · sobrecupo tolerado" : ""}</span>` : "Libre en este bloque"));
+  };
+  box.onmouseleave = T.hide;
+}
+function pintar() {
+  document.getElementById("bloque").value = bloque;
+  const vis = salasVis(); let k = 0;
+  document.querySelectorAll(".u[data-i]").forEach(u => {
+    const s = P.salas[u.dataset.i], o = occ[u.dataset.i + "|" + dia + "|" + bloque];
+    u.classList.toggle("on", !!o); u.style.background = o ? tono(o, s.CAPACIDAD) : ""; if (o) k++;
+  });
+  const rm = rangoMin();
+  const sin = def.filter(d => d.dia === dia && d.b === bloque && d.rg >= rm);
+  document.getElementById("big").innerHTML = `${k}<small> de ${vis.length} espacios</small>`;
+  document.getElementById("cuando").innerHTML = `ocupados · <b style="color:#d03b3b">${sin.length} secciones sin sala</b><br>${DNOM[dia]} · bloque ${bloque} · ${HORAS[bloque]} · ${nomPer([10, 20].includes(ESTADO.per) ? ESTADO.per : 10)} ${ESTADO.anio}${ESTADO.anio === 2031 ? " (extrapolado)" : ""}`;
+  // bandeja de secciones sin sala, agrupadas por el tamaño que piden
+  const bj = document.getElementById("bandeja");
+  bj.innerHTML = sin.length ? `<div class="grupo card bandeja"><h3 style="color:#d03b3b">Sin sala en este bloque · ${sin.length} secciones</h3>` +
+    P.rangos.map((rg, r) => { const g = sin.filter(d => d.rg === r); if (!g.length) return "";
+      return `<div class="rg"><span>piden ${rg}${r === 3 ? " (salas grandes)" : ""} · ${g.length}</span><div class="cells">${g.map((d, j) => `<div class="u sin" data-d="${sin.indexOf(d)}"></div>`).join("")}</div></div>`; }).join("") + "</div>" : "";
+  bj.onmousemove = ev => { const j = ev.target.dataset && ev.target.dataset.d; if (j === undefined) return T.hide(); const d = sin[j];
+    T.show(ev, `<b>Sección sin sala</b><br>${d.mat} · ${d.ins} inscritos (estimados)<br><span class="m">Pide ${d.cl === "SALA" ? "sala" : "laboratorio"} de ${P.rangos[d.rg]}</span>`); };
+  bj.onmouseleave = T.hide;
+  // mini gráfico del día: ocupados (azul) y sin sala (rojo) sobre la línea de capacidad
+  const W = 600, H = 80, bw = W / 19, n = Math.max(1, vis.length);
+  const visIdx = new Set(vis.map(s => P.salas.indexOf(s)));
+  const ocu = Array.from({ length: 19 }, (_, i) => Object.keys(occ).filter(kk => { const [si, d, b] = kk.split("|").map(Number); return d === dia && b === i + 1 && visIdx.has(si); }).length);
+  const sn = Array.from({ length: 19 }, (_, i) => def.filter(d => d.dia === dia && d.b === i + 1 && d.rg >= rm).length);
+  const mx = Math.max(n, ...ocu.map((v, i) => v + sn[i]));
+  const y = v => H - 4 - v / mx * (H - 10);
+  document.getElementById("spark").innerHTML = ocu.map((v, i) =>
+    `<rect x="${i * bw + 1}" y="${y(v)}" width="${bw - 2}" height="${H - 4 - y(v)}" rx="2" fill="${i + 1 === bloque ? "var(--accent)" : "var(--band)"}"/>` +
+    (sn[i] ? `<rect x="${i * bw + 1}" y="${y(v + sn[i])}" width="${bw - 2}" height="${y(v) - y(v + sn[i])}" fill="#d03b3b"/>` : "")).join("") +
+    `<line x1="0" x2="${W}" y1="${y(n)}" y2="${y(n)}" stroke="var(--text-muted)" stroke-dasharray="4 3"/>`;
+}
+function render() { pintarAvisos(); cargar(); dibujar(); pintar(); }
+
+document.getElementById("dia").innerHTML = DNOM.map((d, i) => `<button data-v="${i}" aria-pressed="${i === dia}">${d.slice(0, 3)}</button>`).join("");
+document.querySelectorAll("#dia button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#dia button").forEach(o => o.setAttribute("aria-pressed", o === b)); dia = +b.dataset.v; pintar(); });
+document.getElementById("bloque").oninput = e => { bloque = +e.target.value; pintar(); };
+document.getElementById("play").onclick = e => {
+  if (timer) { clearInterval(timer); timer = null; e.target.textContent = "▶ Reproducir el día"; return; }
+  e.target.textContent = "❚❚ Pausa"; bloque = 1; pintar();
+  timer = setInterval(() => { bloque++; if (bloque > 19) { clearInterval(timer); timer = null; e.target.textContent = "▶ Reproducir el día"; bloque = 19; } pintar(); }, 650);
+};
+alCambiar(render);
+render();
+</script>
+</body>
+</html>

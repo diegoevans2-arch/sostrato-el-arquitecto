@@ -1,0 +1,4 @@
+# Datos de origen e intermedios: no se publican (ver README)
+BBDD/
+**/.ipynb_checkpoints/
+**/__pycache__/

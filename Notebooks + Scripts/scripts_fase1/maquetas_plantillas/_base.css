@@ -1,0 +1,72 @@
+.viz-root {
+  color-scheme: light;
+  --surface-0: #f6f5f2;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --grid: #e4e3df;
+  --neutral: #f0efec;
+  --accent: #2a78d6;
+  --band: #b7d3f6;
+  --critical: #d03b3b;
+  --free: #e9e8e4;
+  --free-stroke: #cfcec9;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  margin: 0;
+  min-height: 100vh;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+    --text-muted: #9a998f; --grid: #33332f; --neutral: #383835; --accent: #3987e5; --band: #1c5cab;
+    --free: #2a2a28; --free-stroke: #44443f;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+  --text-muted: #9a998f; --grid: #33332f; --neutral: #383835; --accent: #3987e5; --band: #1c5cab;
+  --free: #2a2a28; --free-stroke: #44443f;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 16px 48px; }
+.kicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 6px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 0 0 8px; font-weight: 650; }
+.dek { font-size: 15px; color: var(--text-secondary); max-width: 820px; margin: 0 0 18px; line-height: 1.5; }
+.aviso { font-size: 13px; color: var(--text-secondary); background: var(--surface-1); border-left: 3px solid var(--text-muted);
+         padding: 8px 12px; margin: 0 0 18px; max-width: 900px; line-height: 1.45; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 0 0 16px; font-size: 13px; color: var(--text-secondary); }
+.seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; background: var(--surface-1); }
+.seg button { border: 0; background: transparent; padding: 6px 10px; font: inherit; color: var(--text-secondary); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+.card { background: var(--surface-1); border-radius: 10px; padding: 16px; }
+.hero { display: flex; gap: 32px; flex-wrap: wrap; margin: 0 0 18px; }
+.hero .n { font-size: 34px; font-weight: 650; line-height: 1; }
+.hero .l { font-size: 13px; color: var(--text-secondary); margin-top: 4px; max-width: 260px; }
+.tip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid);
+       border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.45; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+       opacity: 0; transition: opacity .08s; max-width: 280px; z-index: 10; }
+.tip b { font-weight: 650; }
+.tip .m { color: var(--text-secondary); }
+details { margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+details table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+details th, details td { padding: 3px 10px; border-bottom: 1px solid var(--grid); text-align: right; }
+details th:first-child, details td:first-child { text-align: left; }
+.fuente { font-size: 12px; color: var(--text-muted); margin-top: 20px; line-height: 1.5; }
+svg text { fill: var(--text-secondary); font-size: 11px; }
+
+/* modo embebido (dentro de la demo): sin rótulo de maqueta ni selectores propios de campus */
+.embed .kicker, .embed .solo-suelta { display: none !important; }
+.embed .wrap { padding-top: 14px; }
+
+/* simulación de alertas */
+.aviso-chip { display: inline-block; font-size: 12px; background: #fff4e5; color: #7a4a00; border: 1px solid #f3c978; border-radius: 6px; padding: 4px 8px; margin: 0 8px 8px 0; }
+:root[data-theme="dark"] .aviso-chip { background: #3a2a0d; color: #ffd38a; border-color: #6b4a14; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .aviso-chip { background: #3a2a0d; color: #ffd38a; border-color: #6b4a14; } }
+.ctl-sel { font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--grid); background: var(--surface-1); color: var(--text-primary); }
+.embed #ctl { display: none; }
+.sem { display: inline-flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+.sem i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }

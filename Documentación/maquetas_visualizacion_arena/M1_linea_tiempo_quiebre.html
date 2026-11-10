@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Año de quiebre · Arena</title>
+<style>.viz-root {
+  color-scheme: light;
+  --surface-0: #ddd3b4;
+  --surface-1: #e9e1c8;
+  --text-primary: #33301f;
+  --text-secondary: #5f5940;
+  --text-muted: #6f6849;
+  --grid: #cfc5a5;
+  --neutral: #d8cfb0;
+  --accent: #8a4b2a;
+  --band: #cdb795;
+  --critical: #962018;
+  --free: #d3c9a8;
+  --free-stroke: #bfb493;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  margin: 0;
+  min-height: 100vh;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+    --text-muted: #9a998f; --grid: #33332f; --neutral: #383835; --accent: #8a4b2a; --band: #38507f;
+    --free: #2a2a28; --free-stroke: #44443f;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+  --text-muted: #9a998f; --grid: #33332f; --neutral: #383835; --accent: #8a4b2a; --band: #38507f;
+  --free: #2a2a28; --free-stroke: #44443f;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 16px 48px; }
+.kicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 6px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 0 0 8px; font-weight: 650; }
+.dek { font-size: 15px; color: var(--text-secondary); max-width: 820px; margin: 0 0 18px; line-height: 1.5; }
+.aviso { font-size: 13px; color: var(--text-secondary); background: var(--surface-1); border-left: 3px solid var(--text-muted);
+         padding: 8px 12px; margin: 0 0 18px; max-width: 900px; line-height: 1.45; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 0 0 16px; font-size: 13px; color: var(--text-secondary); }
+.seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; background: var(--surface-1); }
+.seg button { border: 0; background: transparent; padding: 6px 10px; font: inherit; color: var(--text-secondary); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+.card { background: var(--surface-1); border-radius: 10px; padding: 16px; }
+.hero { display: flex; gap: 32px; flex-wrap: wrap; margin: 0 0 18px; }
+.hero .n { font-size: 34px; font-weight: 650; line-height: 1; }
+.hero .l { font-size: 13px; color: var(--text-secondary); margin-top: 4px; max-width: 260px; }
+.tip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid);
+       border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.45; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+       opacity: 0; transition: opacity .08s; max-width: 280px; z-index: 10; }
+.tip b { font-weight: 650; }
+.tip .m { color: var(--text-secondary); }
+details { margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+details table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+details th, details td { padding: 3px 10px; border-bottom: 1px solid var(--grid); text-align: right; }
+details th:first-child, details td:first-child { text-align: left; }
+.fuente { font-size: 12px; color: var(--text-muted); margin-top: 20px; line-height: 1.5; }
+svg text { fill: var(--text-secondary); font-size: 11px; }
+
+/* modo embebido (dentro de la demo): sin rótulo de maqueta ni selectores propios de campus */
+.embed .kicker, .embed .solo-suelta { display: none !important; }
+.embed .wrap { padding-top: 14px; }
+
+/* simulación de alertas */
+.aviso-chip { display: inline-block; font-size: 12px; background: #e4d3a8; color: #6b4210; border: 1px solid #b4690e; border-radius: 6px; padding: 4px 8px; margin: 0 8px 8px 0; }
+:root[data-theme="dark"] .aviso-chip { background: #3a2a0d; color: #ffd38a; border-color: #6b4a14; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .aviso-chip { background: #3a2a0d; color: #ffd38a; border-color: #6b4a14; } }
+.ctl-sel { font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--grid); background: var(--surface-1); color: var(--text-primary); }
+.embed #ctl { display: none; }
+.sem { display: inline-flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+.sem i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.panel h3 { margin: 0 0 2px; font-size: 15px; font-weight: 650; }
+.panel .s { font-size: 12px; color: var(--text-secondary); margin: 0 0 6px; }
+.panel .q { font-weight: 650; color: var(--critical); }
+</style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400;500;600&display=swap"><style>
+/* paleta Arena: prosa en Geist; títulos, controles, cifras y rótulos en Geist Mono */
+html, body, .viz-root { font-family: "Geist", "Segoe UI", system-ui, sans-serif; }
+h1, h3, .marca, nav button, .filtros, .modo, .play, .anios, .seg, .pill, .hero .n, .kicker, .tr .n, .ley, .sem, .tip { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+.seg, .anios, .card, .ctl-sel, .filtros select, .play { border-radius: 4px; }
+.card { border: 1px solid var(--grid); }
+.seg button[aria-pressed="true"], .anios button[aria-pressed="true"], .modo button[aria-pressed="true"],
+.pill[aria-pressed="true"] { background: #8a4b2a; color: #f6f1e0; border-color: #8a4b2a; }
+.marca .t::after { content: " · paleta Arena"; font-weight: 400; color: var(--text-muted); font-size: 12px; }
+</style></head>
+<body class="viz-root">
+<div class="wrap">
+  <p class="kicker">Sóstrato el Arquitecto · maqueta 1</p>
+  <h1>¿En qué año se quedan sin salas los campus?</h1>
+  <p class="dek"><b>Frecuencia de uso</b> en la hora más cargada de la semana: qué parte de las salas del campus está ocupada a la vez. Sobre la línea de 100 % la programación ya no cabe en los espacios disponibles. La banda muestra los escenarios bajo y alto de matrícula.</p>
+  <p class="aviso"><b>Ilustrativo.</b> Parte del pico real del semestre 2026-1 (mediana de 16 semanas, pregrado y AV) y lo escala con el crecimiento de matrícula de pregrado que proyecta Ariadna para cada sede. No es la programación sintética de Sóstrato el Arquitecto: sirve para evaluar la forma de mostrarlo.</p>
+  <div class="controls">
+    <span>Clase de espacio</span>
+    <div class="seg" id="clase"><button aria-pressed="true" data-v="SALA">Salas</button><button aria-pressed="false" data-v="LABORATORIO">Laboratorios</button></div>
+  </div>
+  <div class="hero" id="hero"></div>
+  <div class="grid" id="grid"></div>
+  <details><summary>Ver tabla</summary><div id="tabla"></div></details>
+  <p class="fuente">Fuente: programación detallada (Cirilo, parquet del 25-09-2026), planta física vigente (salas activas) y proyección de matrícula Ariadna del 28-09-2026. Denominador: salas de la clase en la planta física del campus. Dirección de Ingeniería de Datos · UNIV.</p>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const QS = new URLSearchParams(location.search);
+const FILTRO = (QS.get("campus") || "TODOS").toUpperCase();
+if (QS.has("embed")) document.documentElement.classList.add("embed");
+const DATA = {"serie": [{"CAMPUS": "C05", "CLASE": "LABORATORIO", "ANIO": 2026, "DISP": 28, "BASE": 0.5357, "BAJO": 0.5357, "ALTO": 0.5357}, {"CAMPUS": "C05", "CLASE": "LABORATORIO", "ANIO": 2027, "DISP": 28, "BASE": 0.5548, "BAJO": 0.5311, "ALTO": 0.5782}, {"CAMPUS": "C05", "CLASE": "LABORATORIO", "ANIO": 2028, "DISP": 28, "BASE": 0.5858, "BAJO": 0.5506, "ALTO": 0.6211}, {"CAMPUS": "C05", "CLASE": "LABORATORIO", "ANIO": 2029, "DISP": 28, "BASE": 0.6191, "BAJO": 0.5733, "ALTO": 0.6645}, {"CAMPUS": "C05", "CLASE": "LABORATORIO", "ANIO": 2030, "DISP": 28, "BASE": 0.6534, "BAJO": 0.5981, "ALTO": 0.7091}, {"CAMPUS": "C05", "CLASE": "LABORATORIO", "ANIO": 2031, "DISP": 28, "BASE": 0.6908, "BAJO": 0.6245, "ALTO": 0.7567}, {"CAMPUS": "C05", "CLASE": "SALA", "ANIO": 2026, "DISP": 58, "BASE": 0.8448, "BAJO": 0.8448, "ALTO": 0.8448}, {"CAMPUS": "C05", "CLASE": "SALA", "ANIO": 2027, "DISP": 58, "BASE": 0.875, "BAJO": 0.8376, "ALTO": 0.9118}, {"CAMPUS": "C05", "CLASE": "SALA", "ANIO": 2028, "DISP": 58, "BASE": 0.9238, "BAJO": 0.8683, "ALTO": 0.9795}, {"CAMPUS": "C05", "CLASE": "SALA", "ANIO": 2029, "DISP": 58, "BASE": 0.9764, "BAJO": 0.904, "ALTO": 1.0479}, {"CAMPUS": "C05", "CLASE": "SALA", "ANIO": 2030, "DISP": 58, "BASE": 1.0304, "BAJO": 0.9432, "ALTO": 1.1182}, {"CAMPUS": "C05", "CLASE": "SALA", "ANIO": 2031, "DISP": 58, "BASE": 1.0894, "BAJO": 0.9849, "ALTO": 1.1933}, {"CAMPUS": "C06", "CLASE": "LABORATORIO", "ANIO": 2026, "DISP": 5, "BASE": 1.0, "BAJO": 1.0, "ALTO": 1.0}, {"CAMPUS": "C06", "CLASE": "LABORATORIO", "ANIO": 2027, "DISP": 5, "BASE": 1.1076, "BAJO": 1.0593, "ALTO": 1.1541}, {"CAMPUS": "C06", "CLASE": "LABORATORIO", "ANIO": 2028, "DISP": 5, "BASE": 1.17, "BAJO": 1.0991, "ALTO": 1.2398}, {"CAMPUS": "C06", "CLASE": "LABORATORIO", "ANIO": 2029, "DISP": 5, "BASE": 1.2343, "BAJO": 1.1437, "ALTO": 1.3266}, {"CAMPUS": "C06", "CLASE": "LABORATORIO", "ANIO": 2030, "DISP": 5, "BASE": 1.3046, "BAJO": 1.1939, "ALTO": 1.4153}, {"CAMPUS": "C06", "CLASE": "LABORATORIO", "ANIO": 2031, "DISP": 5, "BASE": 1.378, "BAJO": 1.2477, "ALTO": 1.5095}, {"CAMPUS": "C06", "CLASE": "SALA", "ANIO": 2026, "DISP": 29, "BASE": 0.9655, "BAJO": 0.9655, "ALTO": 0.9655}, {"CAMPUS": "C06", "CLASE": "SALA", "ANIO": 2027, "DISP": 29, "BASE": 1.0695, "BAJO": 1.0228, "ALTO": 1.1143}, {"CAMPUS": "C06", "CLASE": "SALA", "ANIO": 2028, "DISP": 29, "BASE": 1.1297, "BAJO": 1.0612, "ALTO": 1.197}, {"CAMPUS": "C06", "CLASE": "SALA", "ANIO": 2029, "DISP": 29, "BASE": 1.1917, "BAJO": 1.1043, "ALTO": 1.2809}, {"CAMPUS": "C06", "CLASE": "SALA", "ANIO": 2030, "DISP": 29, "BASE": 1.2596, "BAJO": 1.1527, "ALTO": 1.3665}, {"CAMPUS": "C06", "CLASE": "SALA", "ANIO": 2031, "DISP": 29, "BASE": 1.3305, "BAJO": 1.2047, "ALTO": 1.4574}, {"CAMPUS": "C04", "CLASE": "LABORATORIO", "ANIO": 2026, "DISP": 47, "BASE": 0.4681, "BAJO": 0.4681, "ALTO": 0.4681}, {"CAMPUS": "C04", "CLASE": "LABORATORIO", "ANIO": 2027, "DISP": 47, "BASE": 0.4718, "BAJO": 0.4523, "ALTO": 0.4921}, {"CAMPUS": "C04", "CLASE": "LABORATORIO", "ANIO": 2028, "DISP": 47, "BASE": 0.499, "BAJO": 0.4687, "ALTO": 0.5286}, {"CAMPUS": "C04", "CLASE": "LABORATORIO", "ANIO": 2029, "DISP": 47, "BASE": 0.5267, "BAJO": 0.488, "ALTO": 0.5658}, {"CAMPUS": "C04", "CLASE": "LABORATORIO", "ANIO": 2030, "DISP": 47, "BASE": 0.5564, "BAJO": 0.5091, "ALTO": 0.6039}, {"CAMPUS": "C04", "CLASE": "LABORATORIO", "ANIO": 2031, "DISP": 47, "BASE": 0.5878, "BAJO": 0.5316, "ALTO": 0.6437}, {"CAMPUS": "C04", "CLASE": "SALA", "ANIO": 2026, "DISP": 37, "BASE": 1.0, "BAJO": 1.0, "ALTO": 1.0}, {"CAMPUS": "C04", "CLASE": "SALA", "ANIO": 2027, "DISP": 37, "BASE": 1.008, "BAJO": 0.9664, "ALTO": 1.0513}, {"CAMPUS": "C04", "CLASE": "SALA", "ANIO": 2028, "DISP": 37, "BASE": 1.0661, "BAJO": 1.0014, "ALTO": 1.1293}, {"CAMPUS": "C04", "CLASE": "SALA", "ANIO": 2029, "DISP": 37, "BASE": 1.1252, "BAJO": 1.0426, "ALTO": 1.2087}, {"CAMPUS": "C04", "CLASE": "SALA", "ANIO": 2030, "DISP": 37, "BASE": 1.1886, "BAJO": 1.0877, "ALTO": 1.2902}, {"CAMPUS": "C04", "CLASE": "SALA", "ANIO": 2031, "DISP": 37, "BASE": 1.2557, "BAJO": 1.1357, "ALTO": 1.3751}, {"CAMPUS": "C02", "CLASE": "LABORATORIO", "ANIO": 2026, "DISP": 45, "BASE": 0.7556, "BAJO": 0.7556, "ALTO": 0.7556}, {"CAMPUS": "C02", "CLASE": "LABORATORIO", "ANIO": 2027, "DISP": 45, "BASE": 0.7882, "BAJO": 0.7547, "ALTO": 0.8217}, {"CAMPUS": "C02", "CLASE": "LABORATORIO", "ANIO": 2028, "DISP": 45, "BASE": 0.8327, "BAJO": 0.7827, "ALTO": 0.8829}, {"CAMPUS": "C02", "CLASE": "LABORATORIO", "ANIO": 2029, "DISP": 45, "BASE": 0.88, "BAJO": 0.8151, "ALTO": 0.9445}, {"CAMPUS": "C02", "CLASE": "LABORATORIO", "ANIO": 2030, "DISP": 45, "BASE": 0.9294, "BAJO": 0.85, "ALTO": 1.0086}, {"CAMPUS": "C02", "CLASE": "LABORATORIO", "ANIO": 2031, "DISP": 45, "BASE": 0.9816, "BAJO": 0.8883, "ALTO": 1.075}, {"CAMPUS": "C02", "CLASE": "SALA", "ANIO": 2026, "DISP": 66, "BASE": 0.9394, "BAJO": 0.9394, "ALTO": 0.9394}, {"CAMPUS": "C02", "CLASE": "SALA", "ANIO": 2027, "DISP": 66, "BASE": 0.98, "BAJO": 0.9383, "ALTO": 1.0216}, {"CAMPUS": "C02", "CLASE": "SALA", "ANIO": 2028, "DISP": 66, "BASE": 1.0354, "BAJO": 0.9731, "ALTO": 1.0978}, {"CAMPUS": "C02", "CLASE": "SALA", "ANIO": 2029, "DISP": 66, "BASE": 1.0942, "BAJO": 1.0134, "ALTO": 1.1744}, {"CAMPUS": "C02", "CLASE": "SALA", "ANIO": 2030, "DISP": 66, "BASE": 1.1556, "BAJO": 1.0569, "ALTO": 1.254}, {"CAMPUS": "C02", "CLASE": "SALA", "ANIO": 2031, "DISP": 66, "BASE": 1.2205, "BAJO": 1.1044, "ALTO": 1.3365}, {"CAMPUS": "C03", "CLASE": "LABORATORIO", "ANIO": 2026, "DISP": 48, "BASE": 0.4167, "BAJO": 0.4167, "ALTO": 0.4167}, {"CAMPUS": "C03", "CLASE": "LABORATORIO", "ANIO": 2027, "DISP": 48, "BASE": 0.4426, "BAJO": 0.4237, "ALTO": 0.4612}, {"CAMPUS": "C03", "CLASE": "LABORATORIO", "ANIO": 2028, "DISP": 48, "BASE": 0.4674, "BAJO": 0.4397, "ALTO": 0.4956}, {"CAMPUS": "C03", "CLASE": "LABORATORIO", "ANIO": 2029, "DISP": 48, "BASE": 0.4938, "BAJO": 0.4574, "ALTO": 0.5301}, {"CAMPUS": "C03", "CLASE": "LABORATORIO", "ANIO": 2030, "DISP": 48, "BASE": 0.5216, "BAJO": 0.4773, "ALTO": 0.566}, {"CAMPUS": "C03", "CLASE": "LABORATORIO", "ANIO": 2031, "DISP": 48, "BASE": 0.5511, "BAJO": 0.4986, "ALTO": 0.6033}, {"CAMPUS": "C03", "CLASE": "SALA", "ANIO": 2026, "DISP": 62, "BASE": 0.8871, "BAJO": 0.8871, "ALTO": 0.8871}, {"CAMPUS": "C03", "CLASE": "SALA", "ANIO": 2027, "DISP": 62, "BASE": 0.9423, "BAJO": 0.9021, "ALTO": 0.982}, {"CAMPUS": "C03", "CLASE": "SALA", "ANIO": 2028, "DISP": 62, "BASE": 0.9952, "BAJO": 0.9361, "ALTO": 1.0552}, {"CAMPUS": "C03", "CLASE": "SALA", "ANIO": 2029, "DISP": 62, "BASE": 1.0513, "BAJO": 0.9738, "ALTO": 1.1286}, {"CAMPUS": "C03", "CLASE": "SALA", "ANIO": 2030, "DISP": 62, "BASE": 1.1105, "BAJO": 1.0162, "ALTO": 1.2051}, {"CAMPUS": "C03", "CLASE": "SALA", "ANIO": 2031, "DISP": 62, "BASE": 1.1733, "BAJO": 1.0615, "ALTO": 1.2844}, {"CAMPUS": "C07", "CLASE": "LABORATORIO", "ANIO": 2026, "DISP": 8, "BASE": 0.625, "BAJO": 0.625, "ALTO": 0.625}, {"CAMPUS": "C07", "CLASE": "LABORATORIO", "ANIO": 2027, "DISP": 8, "BASE": 0.6918, "BAJO": 0.6627, "ALTO": 0.7217}, {"CAMPUS": "C07", "CLASE": "LABORATORIO", "ANIO": 2028, "DISP": 8, "BASE": 0.7312, "BAJO": 0.6875, "ALTO": 0.7748}, {"CAMPUS": "C07", "CLASE": "LABORATORIO", "ANIO": 2029, "DISP": 8, "BASE": 0.7723, "BAJO": 0.7149, "ALTO": 0.8288}, {"CAMPUS": "C07", "CLASE": "LABORATORIO", "ANIO": 2030, "DISP": 8, "BASE": 0.8159, "BAJO": 0.7466, "ALTO": 0.8861}, {"CAMPUS": "C07", "CLASE": "LABORATORIO", "ANIO": 2031, "DISP": 8, "BASE": 0.8613, "BAJO": 0.7791, "ALTO": 0.9426}, {"CAMPUS": "C07", "CLASE": "SALA", "ANIO": 2026, "DISP": 8, "BASE": 0.875, "BAJO": 0.875, "ALTO": 0.875}, {"CAMPUS": "C07", "CLASE": "SALA", "ANIO": 2027, "DISP": 8, "BASE": 0.9685, "BAJO": 0.9277, "ALTO": 1.0104}, {"CAMPUS": "C07", "CLASE": "SALA", "ANIO": 2028, "DISP": 8, "BASE": 1.0236, "BAJO": 0.9625, "ALTO": 1.0848}, {"CAMPUS": "C07", "CLASE": "SALA", "ANIO": 2029, "DISP": 8, "BASE": 1.0812, "BAJO": 1.0009, "ALTO": 1.1603}, {"CAMPUS": "C07", "CLASE": "SALA", "ANIO": 2030, "DISP": 8, "BASE": 1.1423, "BAJO": 1.0452, "ALTO": 1.2406}, {"CAMPUS": "C07", "CLASE": "SALA", "ANIO": 2031, "DISP": 8, "BASE": 1.2058, "BAJO": 1.0908, "ALTO": 1.3197}, {"CAMPUS": "C01", "CLASE": "LABORATORIO", "ANIO": 2026, "DISP": 92, "BASE": 0.5652, "BAJO": 0.5652, "ALTO": 0.5652}, {"CAMPUS": "C01", "CLASE": "LABORATORIO", "ANIO": 2027, "DISP": 92, "BASE": 0.6063, "BAJO": 0.5805, "ALTO": 0.6321}, {"CAMPUS": "C01", "CLASE": "LABORATORIO", "ANIO": 2028, "DISP": 92, "BASE": 0.6402, "BAJO": 0.6019, "ALTO": 0.679}, {"CAMPUS": "C01", "CLASE": "LABORATORIO", "ANIO": 2029, "DISP": 92, "BASE": 0.6765, "BAJO": 0.6266, "ALTO": 0.7265}, {"CAMPUS": "C01", "CLASE": "LABORATORIO", "ANIO": 2030, "DISP": 92, "BASE": 0.7148, "BAJO": 0.6539, "ALTO": 0.7755}, {"CAMPUS": "C01", "CLASE": "LABORATORIO", "ANIO": 2031, "DISP": 92, "BASE": 0.7551, "BAJO": 0.6832, "ALTO": 0.8266}, {"CAMPUS": "C01", "CLASE": "SALA", "ANIO": 2026, "DISP": 111, "BASE": 0.9369, "BAJO": 0.9369, "ALTO": 0.9369}, {"CAMPUS": "C01", "CLASE": "SALA", "ANIO": 2027, "DISP": 111, "BASE": 1.0051, "BAJO": 0.9622, "ALTO": 1.0478}, {"CAMPUS": "C01", "CLASE": "SALA", "ANIO": 2028, "DISP": 111, "BASE": 1.0613, "BAJO": 0.9978, "ALTO": 1.1256}, {"CAMPUS": "C01", "CLASE": "SALA", "ANIO": 2029, "DISP": 111, "BASE": 1.1214, "BAJO": 1.0387, "ALTO": 1.2042}, {"CAMPUS": "C01", "CLASE": "SALA", "ANIO": 2030, "DISP": 111, "BASE": 1.1849, "BAJO": 1.0839, "ALTO": 1.2855}, {"CAMPUS": "C01", "CLASE": "SALA", "ANIO": 2031, "DISP": 111, "BASE": 1.2517, "BAJO": 1.1325, "ALTO": 1.3702}]};
+const NOMBRE = {"C05": "SEDE CENTRO- CAMPUS 05", "C04": "SEDE SUR-SEDE SUR", "C02": "SEDE CENTRO-CAMPUS 02", "C03": "SEDE AUSTRAL-CAMPUS 03", "C01": "SEDE NORTE-CAMPUS 01", "C10": "CAMPUS VIRTUAL", "C09": "SEDE VALLE", "C08": "SEDE LAGOS", "C06": "SEDE CENTRO-CAMPUS 06", "C07": "SEDE NORTE-CAMPUS 07", "C11": "SEDE NORTE-CAMPUS 11", "C12": "SEDE CENTRO-CAMPUS 12", "C13": "SEDE NORTE-CAMPUS 13"};
+let clase = "SALA";
+const tip = document.getElementById("tip");
+const pct = v => Math.round(v * 100) + " %";
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+
+function quiebre(rows, k) { const r = rows.find(d => d[k] >= 1); return r ? r.ANIO : null; }
+
+function render() {
+  const rows = DATA.serie.filter(d => d.CLASE === clase && d.DISP >= 5 && (FILTRO === "TODOS" || d.CAMPUS === FILTRO));
+  if (!rows.length) { document.getElementById("hero").innerHTML = ""; document.getElementById("grid").innerHTML = `<p class=\"dek\">Este campus no tiene ${clase === "SALA" ? "salas" : "laboratorios"} suficientes (5 o más) para la vista.</p>`; document.getElementById("tabla").innerHTML = ""; return; }
+  const campus = [...new Set(rows.map(d => d.CAMPUS))].map(c => {
+    const s = rows.filter(d => d.CAMPUS === c).sort((a, b) => a.ANIO - b.ANIO);
+    return {c, s, q: quiebre(s, "BASE"), qa: quiebre(s, "ALTO"), qb: quiebre(s, "BAJO")};
+  }).sort((a, b) => (a.q ?? 9999) - (b.q ?? 9999) || b.s[0].BASE - a.s[0].BASE);
+  const n = campus.length, antes = campus.filter(d => d.q).length, ya = campus.filter(d => d.q === 2026).length;
+  document.getElementById("hero").innerHTML =
+    `<div><div class="n">${antes} de ${n}</div><div class="l">campus superan el 100 % antes de 2031 en el escenario base</div></div>` +
+    `<div><div class="n">${ya}</div><div class="l">ya están en el límite en 2026</div></div>` +
+    `<div><div class="n">${campus.filter(d => d.qb).length} de ${n}</div><div class="l">lo superan incluso en el escenario bajo de matrícula</div></div>`;
+
+  const W = 290, H = 150, m = {l: 34, r: 10, t: 8, b: 20};
+  const ymax = Math.max(1.25, ...rows.map(d => d.ALTO)) * 1.03;
+  const ymin = Math.min(0.75, ...rows.map(d => d.BAJO)) - 0.03;          // eje sin cero: la lectura es contra la línea de 100 %
+  const x = a => m.l + (a - 2026) / 5 * (W - m.l - m.r);
+  const y = v => m.t + (1 - (v - ymin) / (ymax - ymin)) * (H - m.t - m.b);
+  const g = document.getElementById("grid"); g.innerHTML = "";
+  campus.forEach(d => {
+    const el = document.createElement("div"); el.className = "card panel";
+    const band = d.s.map(r => `${x(r.ANIO)},${y(r.ALTO)}`).join(" ") + " " + [...d.s].reverse().map(r => `${x(r.ANIO)},${y(r.BAJO)}`).join(" ");
+    const line = d.s.map(r => `${x(r.ANIO)},${y(r.BASE)}`).join(" ");
+    const ticks = [.5, .75, 1, 1.25, 1.5].filter(t => t >= ymin && t <= ymax).map(t =>
+      `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/>` +
+      `<text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${t * 100}%</text>`).join("");
+    const years = [2026, 2028, 2031].map(a => `<text x="${x(a)}" y="${H - 4}" text-anchor="middle">${a}</text>`).join("");
+    const qm = d.q ? `<circle cx="${x(d.q)}" cy="${y(d.s.find(r => r.ANIO === d.q).BASE)}" r="5" fill="var(--critical)" stroke="var(--surface-1)" stroke-width="2"/>` : "";
+    el.innerHTML = `<h3>${nice(NOMBRE[d.c] || d.c)} <span style="color:var(--text-muted);font-weight:400">${d.c}</span></h3>
+      <p class="s">${d.s[0].DISP} ${clase === "SALA" ? "salas" : "laboratorios"} · hoy ${pct(d.s[0].BASE)} · ${d.q ? `quiebre <span class="q">${d.q}</span>` : "sin quiebre al 2031"}</p>
+      <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Uso máximo proyectado de ${d.c}">
+        ${ticks}<line x1="${m.l}" x2="${W - m.r}" y1="${y(1)}" y2="${y(1)}" stroke="var(--critical)" stroke-dasharray="4 3" stroke-width="1.5"/>
+        <polygon points="${band}" fill="var(--band)" opacity=".7"/>
+        <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+        ${qm}${years}<rect class="hit" x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H - m.b}" fill="transparent"/>
+      </svg>`;
+    el.querySelector(".hit").addEventListener("mousemove", ev => {
+      const r = ev.target.getBoundingClientRect(), a = Math.round(2026 + (ev.clientX - r.left) / r.width * 5);
+      const p = d.s.find(q => q.ANIO === a); if (!p) return;
+      tip.innerHTML = `<b>${nice(NOMBRE[d.c] || d.c)} · ${a}</b><br>Base ${pct(p.BASE)}<br><span class="m">Bajo ${pct(p.BAJO)} · alto ${pct(p.ALTO)}</span><br>` +
+        `<span class="m">≈ ${Math.round(p.BASE * p.DISP)} de ${p.DISP} espacios en la hora punta</span>`;
+      tip.style.left = ev.clientX + 14 + "px"; tip.style.top = ev.clientY + 14 + "px"; tip.style.opacity = 1;
+    });
+    el.querySelector(".hit").addEventListener("mouseleave", () => tip.style.opacity = 0);
+    g.appendChild(el);
+  });
+  document.getElementById("tabla").innerHTML = "<table><tr><th>Campus</th>" + [2026,2027,2028,2029,2030,2031].map(a => `<th>${a}</th>`).join("") + "<th>Quiebre</th></tr>" +
+    campus.map(d => `<tr><td>${d.c}</td>${d.s.map(r => `<td>${pct(r.BASE)}</td>`).join("")}<td>${d.q ?? "—"}</td></tr>`).join("") + "</table>";
+}
+document.querySelectorAll("#clase button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#clase button").forEach(o => o.setAttribute("aria-pressed", o === b)); clase = b.dataset.v; render();
+});
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Año de quiebre</title>
+<style>/*__CSS__*/
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.panel h3 { margin: 0 0 2px; font-size: 15px; font-weight: 650; }
+.panel .s { font-size: 12px; color: var(--text-secondary); margin: 0 0 6px; }
+.panel .q { font-weight: 650; color: var(--critical); }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <p class="kicker">Sóstrato el Arquitecto · maqueta 1</p>
+  <h1>¿En qué año se quedan sin salas los campus?</h1>
+  <p class="dek"><b>Frecuencia de uso</b> en la hora más cargada de la semana: qué parte de las salas del campus está ocupada a la vez. Sobre la línea de 100 % la programación ya no cabe en los espacios disponibles. La banda muestra los escenarios bajo y alto de matrícula.</p>
+  <p class="aviso"><b>Ilustrativo.</b> Parte del pico real del semestre 2026-1 (mediana de 16 semanas, pregrado y AV) y lo escala con el crecimiento de matrícula de pregrado que proyecta Ariadna para cada sede. No es la programación sintética de Sóstrato el Arquitecto: sirve para evaluar la forma de mostrarlo.</p>
+  <div class="controls">
+    <span>Clase de espacio</span>
+    <div class="seg" id="clase"><button aria-pressed="true" data-v="SALA">Salas</button><button aria-pressed="false" data-v="LABORATORIO">Laboratorios</button></div>
+  </div>
+  <div class="hero" id="hero"></div>
+  <div class="grid" id="grid"></div>
+  <details><summary>Ver tabla</summary><div id="tabla"></div></details>
+  <p class="fuente">Fuente: programación detallada (Cirilo, parquet del 25-09-2026), planta física vigente (salas activas) y proyección de matrícula Ariadna del 28-09-2026. Denominador: salas de la clase en la planta física del campus. Dirección de Ingeniería de Datos · UNIV.</p>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const QS = new URLSearchParams(location.search);
+const FILTRO = (QS.get("campus") || "TODOS").toUpperCase();
+if (QS.has("embed")) document.documentElement.classList.add("embed");
+const DATA = /*__DATOS__*/;
+const NOMBRE = /*__SEDES__*/;
+let clase = "SALA";
+const tip = document.getElementById("tip");
+const pct = v => Math.round(v * 100) + " %";
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+
+function quiebre(rows, k) { const r = rows.find(d => d[k] >= 1); return r ? r.ANIO : null; }
+
+function render() {
+  const rows = DATA.serie.filter(d => d.CLASE === clase && d.DISP >= 5 && (FILTRO === "TODOS" || d.CAMPUS === FILTRO));
+  if (!rows.length) { document.getElementById("hero").innerHTML = ""; document.getElementById("grid").innerHTML = `<p class=\"dek\">Este campus no tiene ${clase === "SALA" ? "salas" : "laboratorios"} suficientes (5 o más) para la vista.</p>`; document.getElementById("tabla").innerHTML = ""; return; }
+  const campus = [...new Set(rows.map(d => d.CAMPUS))].map(c => {
+    const s = rows.filter(d => d.CAMPUS === c).sort((a, b) => a.ANIO - b.ANIO);
+    return {c, s, q: quiebre(s, "BASE"), qa: quiebre(s, "ALTO"), qb: quiebre(s, "BAJO")};
+  }).sort((a, b) => (a.q ?? 9999) - (b.q ?? 9999) || b.s[0].BASE - a.s[0].BASE);
+  const n = campus.length, antes = campus.filter(d => d.q).length, ya = campus.filter(d => d.q === 2026).length;
+  document.getElementById("hero").innerHTML =
+    `<div><div class="n">${antes} de ${n}</div><div class="l">campus superan el 100 % antes de 2031 en el escenario base</div></div>` +
+    `<div><div class="n">${ya}</div><div class="l">ya están en el límite en 2026</div></div>` +
+    `<div><div class="n">${campus.filter(d => d.qb).length} de ${n}</div><div class="l">lo superan incluso en el escenario bajo de matrícula</div></div>`;
+
+  const W = 290, H = 150, m = {l: 34, r: 10, t: 8, b: 20};
+  const ymax = Math.max(1.25, ...rows.map(d => d.ALTO)) * 1.03;
+  const ymin = Math.min(0.75, ...rows.map(d => d.BAJO)) - 0.03;          // eje sin cero: la lectura es contra la línea de 100 %
+  const x = a => m.l + (a - 2026) / 5 * (W - m.l - m.r);
+  const y = v => m.t + (1 - (v - ymin) / (ymax - ymin)) * (H - m.t - m.b);
+  const g = document.getElementById("grid"); g.innerHTML = "";
+  campus.forEach(d => {
+    const el = document.createElement("div"); el.className = "card panel";
+    const band = d.s.map(r => `${x(r.ANIO)},${y(r.ALTO)}`).join(" ") + " " + [...d.s].reverse().map(r => `${x(r.ANIO)},${y(r.BAJO)}`).join(" ");
+    const line = d.s.map(r => `${x(r.ANIO)},${y(r.BASE)}`).join(" ");
+    const ticks = [.5, .75, 1, 1.25, 1.5].filter(t => t >= ymin && t <= ymax).map(t =>
+      `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/>` +
+      `<text x="${m.l - 6}" y="${y(t) + 4}" text-anchor="end">${t * 100}%</text>`).join("");
+    const years = [2026, 2028, 2031].map(a => `<text x="${x(a)}" y="${H - 4}" text-anchor="middle">${a}</text>`).join("");
+    const qm = d.q ? `<circle cx="${x(d.q)}" cy="${y(d.s.find(r => r.ANIO === d.q).BASE)}" r="5" fill="var(--critical)" stroke="var(--surface-1)" stroke-width="2"/>` : "";
+    el.innerHTML = `<h3>${nice(NOMBRE[d.c] || d.c)} <span style="color:var(--text-muted);font-weight:400">${d.c}</span></h3>
+      <p class="s">${d.s[0].DISP} ${clase === "SALA" ? "salas" : "laboratorios"} · hoy ${pct(d.s[0].BASE)} · ${d.q ? `quiebre <span class="q">${d.q}</span>` : "sin quiebre al 2031"}</p>
+      <svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Uso máximo proyectado de ${d.c}">
+        ${ticks}<line x1="${m.l}" x2="${W - m.r}" y1="${y(1)}" y2="${y(1)}" stroke="var(--critical)" stroke-dasharray="4 3" stroke-width="1.5"/>
+        <polygon points="${band}" fill="var(--band)" opacity=".7"/>
+        <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+        ${qm}${years}<rect class="hit" x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H - m.b}" fill="transparent"/>
+      </svg>`;
+    el.querySelector(".hit").addEventListener("mousemove", ev => {
+      const r = ev.target.getBoundingClientRect(), a = Math.round(2026 + (ev.clientX - r.left) / r.width * 5);
+      const p = d.s.find(q => q.ANIO === a); if (!p) return;
+      tip.innerHTML = `<b>${nice(NOMBRE[d.c] || d.c)} · ${a}</b><br>Base ${pct(p.BASE)}<br><span class="m">Bajo ${pct(p.BAJO)} · alto ${pct(p.ALTO)}</span><br>` +
+        `<span class="m">≈ ${Math.round(p.BASE * p.DISP)} de ${p.DISP} espacios en la hora punta</span>`;
+      tip.style.left = ev.clientX + 14 + "px"; tip.style.top = ev.clientY + 14 + "px"; tip.style.opacity = 1;
+    });
+    el.querySelector(".hit").addEventListener("mouseleave", () => tip.style.opacity = 0);
+    g.appendChild(el);
+  });
+  document.getElementById("tabla").innerHTML = "<table><tr><th>Campus</th>" + [2026,2027,2028,2029,2030,2031].map(a => `<th>${a}</th>`).join("") + "<th>Quiebre</th></tr>" +
+    campus.map(d => `<tr><td>${d.c}</td>${d.s.map(r => `<td>${pct(r.BASE)}</td>`).join("")}<td>${d.q ?? "—"}</td></tr>`).join("") + "</table>";
+}
+document.querySelectorAll("#clase button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#clase button").forEach(o => o.setAttribute("aria-pressed", o === b)); clase = b.dataset.v; render();
+});
+render();
+</script>
+</body>
+</html>

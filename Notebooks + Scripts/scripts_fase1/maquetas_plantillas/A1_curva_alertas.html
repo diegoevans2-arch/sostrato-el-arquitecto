@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curva de alertas</title>
+<style>/*__CSS__*/
+.dos { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; margin-bottom: 12px; }
+@media (max-width: 900px) { .dos { grid-template-columns: 1fr; } }
+.card h3 { margin: 0 0 2px; font-size: 14px; font-weight: 650; }
+.card .s { margin: 0 0 8px; font-size: 12px; color: var(--text-secondary); }
+.mult { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.mult .card { padding: 12px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.chip { font-size: 12px; border-radius: 6px; padding: 3px 8px; background: var(--surface-0); color: var(--text-secondary); }
+.chip b { color: var(--text-primary); }
+.valida { font-size: 11px; color: #9c5a00; }
+</style>
+</head>
+<body class="viz-root">
+<div class="wrap">
+  <p class="kicker">Sóstrato el Arquitecto · simulación de alertas · A1</p>
+  <h1 id="titulo">¿Cuántas horas de la semana se quedan sin espacio?</h1>
+  <p class="dek">Cada «celda» es una hora de la semana (día × bloque) de una clase de espacio en un campus. Está <b>en alerta</b> cuando la probabilidad de que la demanda supere las salas disponibles de su tamaño es de <b>25 % o más</b>. La banda muestra los escenarios bajo y alto de matrícula; cada escenario se cuenta por separado.</p>
+  <div class="controls" id="ctl"></div>
+  <div id="avisos"></div>
+  <div class="hero" id="hero"></div>
+  <div class="dos">
+    <div class="card"><h3>Celdas en alerta por año</h3><p class="s" id="s1"></p><svg id="curva" viewBox="0 0 560 260" width="100%" role="img" aria-label="Celdas en alerta por año"></svg>
+      <div class="sem" id="ley1"></div></div>
+    <div class="card"><h3>Qué falta: déficit y sobrecupo de la programación</h3><p class="s">Escenario base · % de los casilleros, ponderado por semanas · el color del déficit es el tamaño de sala que piden</p>
+      <svg id="deficit" viewBox="0 0 420 260" width="100%" role="img" aria-label="Déficit y sobrecupo por año"></svg><div class="sem" id="ley2"></div></div>
+  </div>
+  <div class="card" style="margin-bottom:12px"><h3 id="tmult">Dónde aparecen</h3><p class="s" id="smult"></p><div class="mult" id="mult"></div></div>
+  <details><summary>Ver tabla</summary><div id="tabla"></div></details>
+  <p class="fuente">Fuente: BBDD/OCUPACION_Y_DEFICIT, OCUPACION_POR_RANGO y PROGRAMACION_SINTETICA (Modelos.ipynb, 28-10-2026; D19: naive escalado desde 2028). Alerta = PROB_SATURA_TAMANO ≥ 25 % (con un tamaño elegido, la probabilidad acumulada de ese tamaño o más). La banda de cada celda se lee celda por celda: las cifras cuentan celdas por escenario, nunca suman P10 o P90. El valor del modelo está en el crecimiento y el riesgo, no en la ubicación fina. Dirección de Ingeniería de Datos · UNIV.</p>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+/*__ESTADO_JS__*/
+const S = /*__DATOS__*/;
+const SEDES = /*__SEDES__*/;
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+const nombre = c => c === "TODOS" ? "Todos los campus" : nice((SEDES[c] || c).replace(/^.*?[-–]\s*/, ""));
+const CAMPUS = ["C01", "C02", "C03", "C04", "C05", "C06", "C07"];
+const RAMPA = ["#86b6ef", "#3987e5", "#1c5cab", "#0d366b"];          // rango demandado (ordinal, de chico a grande)
+const T = tooltip();
+const pct = v => (v * 100).toFixed(1).replace(".", ",") + " %";
+const cnt = (c, cl, anio, esc) => S.serie[`${c}|${cl}|${anio * 100 + ESTADO.per}|${esc}|${ESTADO.rango}`] || [0, 0, 0];
+
+function render() {
+  pintarAvisos();
+  const c = ESTADO.campus, per = ESTADO.per, y0 = ESTADO.anio;
+  const cur = cnt(c === "TODOS" ? "TODOS" : c, "*", y0, ESTADO.esc);
+  const def = S.deficit[`${c}|${y0 * 100 + per}`];
+  document.getElementById("hero").innerHTML =
+    `<div><div class="n">${cur[1]}</div><div class="l">celdas en <b>alerta</b> (≥ 25 %) · ${nombre(c)} · ${nomPer(per)} ${y0} · escenario ${ESTADO.esc}</div>
+       <div class="chips"><span class="chip">${NIVELES[1].i} vigilancia <b>${cur[0] - cur[1]}</b></span><span class="chip">${NIVELES[2].i} alerta <b>${cur[1] - cur[2]}</b></span><span class="chip">${NIVELES[3].i} crítica <b>${cur[2]}</b></span></div></div>` +
+    (def ? `<div><div class="n">${pct(def[0])}</div><div class="l">de la programación proyectada <b>sin sala</b> (déficit, escenario base)</div></div>
+       <div><div class="n">${pct(def[1])}</div><div class="l">en <b>sobrecupo tolerado</b>: cabe, pero con más inscritos que la capacidad nominal</div></div>` : "");
+
+  // ---- curva total con banda de escenarios
+  const W = 560, H = 260, m = { l: 40, r: 16, t: 14, b: 28 }, k = c === "TODOS" ? "TODOS" : c;
+  const vals = { bajo: [], base: [], alto: [] };
+  ANIOS.forEach(a => ["bajo", "base", "alto"].forEach(e => vals[e].push(cnt(k, "*", a, e)[1])));
+  const ymax = Math.max(10, ...vals.alto, ...vals.base) * 1.12;
+  const x = a => m.l + (a - 2027) / 4 * (W - m.l - m.r), y = v => m.t + (1 - v / ymax) * (H - m.t - m.b);
+  let s = `<defs><pattern id="rayas" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--grid)" stroke-width="3"/></pattern>
+           <pattern id="rayasB" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="5" stroke="var(--band)" stroke-width="2"/></pattern></defs>`;
+  s += `<rect x="${x(2030.5)}" y="${m.t}" width="${x(2031) - x(2030.5) + m.r - 2}" height="${H - m.t - m.b}" fill="url(#rayas)"/><text x="${x(2031) - 4}" y="${m.t + 12}" text-anchor="end">extrapolado</text>`;
+  const tick = Math.max(10, Math.ceil(ymax / 4 / 10) * 10);
+  for (let v = 0; v <= ymax; v += tick) s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  ANIOS.forEach(a => s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle">${a}</text>`);
+  const banda = ANIOS.slice(1).map((a, i) => `${x(a)},${y(vals.alto[i + 1])}`).join(" ") + " " + ANIOS.slice(1).reverse().map((a, i) => `${x(a)},${y(vals.bajo[4 - i])}`).join(" ");
+  s += `<polygon points="${x(2028)},${y(vals.alto[1])} ${banda} ${x(2028)},${y(vals.bajo[1])}" fill="var(--band)" opacity=".55"/>`;
+  s += `<line x1="${x(2027)}" x2="${x(2027)}" y1="${y(vals.alto[0])}" y2="${y(vals.bajo[0])}" stroke="url(#rayasB)" stroke-width="14"/>
+        <line x1="${x(2027)}" x2="${x(2027)}" y1="${y(vals.alto[0])}" y2="${y(vals.bajo[0])}" stroke="var(--band)" stroke-width="2" stroke-dasharray="3 3"/>
+        <text x="${x(2027) + 10}" y="${y(vals.alto[0]) + 4}">banda de Euribia: otra definición</text>`;
+  s += `<line x1="${x(y0)}" x2="${x(y0)}" y1="${m.t}" y2="${H - m.b}" stroke="var(--text-muted)" stroke-dasharray="3 3"/>`;
+  ["bajo", "base", "alto"].forEach(e => {
+    const sel = e === ESTADO.esc;
+    s += `<polyline points="${ANIOS.map((a, i) => `${x(a)},${y(vals[e][i])}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="${sel ? 2.5 : 1}" ${e === "base" || sel ? "" : 'stroke-dasharray="4 3"'} opacity="${sel || e === "base" ? 1 : .6}"/>`;
+  });
+  ANIOS.forEach((a, i) => s += `<circle data-i="${i}" cx="${x(a)}" cy="${y(vals[ESTADO.esc][i])}" r="${a === y0 ? 6 : 4}" fill="var(--accent)" stroke="var(--surface-1)" stroke-width="2"/>
+     <rect data-i="${i}" x="${x(a) - 24}" y="${m.t}" width="48" height="${H - m.t - m.b}" fill="transparent"/>`);
+  s += `<text x="${x(2031) + 2}" y="${y(vals.base[4]) - 8}" text-anchor="end" font-weight="600" fill="var(--text-primary)">${vals.base[4]}</text>`;
+  const sv = document.getElementById("curva"); sv.innerHTML = s;
+  sv.onmousemove = ev => { const i = ev.target.dataset && ev.target.dataset.i; if (i === undefined) return T.hide();
+    T.show(ev, `<b>${ANIOS[i]}${ANIOS[i] === 2031 ? " · extrapolado" : ""}</b><br>Celdas en alerta (≥ 25 %): base <b>${vals.base[i]}</b><br><span class="m">bajo ${vals.bajo[i]} · alto ${vals.alto[i]}${i === 0 ? " · banda de Euribia: otra definición, no comparable con 2028–2031" : ""}</span>`); };
+  sv.onmouseleave = T.hide;
+  document.getElementById("s1").textContent = `${nombre(c)} · ${nomPer(per)} · ${ESTADO.rango === "todos" ? "todos los tamaños (peor rango de cada celda)" : "salas de " + ESTADO.rango + " o más"}`;
+  document.getElementById("ley1").innerHTML = `<span><i style="background:var(--accent)"></i>escenario ${ESTADO.esc} (línea gruesa)</span><span><i style="background:var(--band)"></i>rango bajo–alto</span><span><i style="background:repeating-linear-gradient(45deg,var(--grid) 0 3px,transparent 3px 6px)"></i>2031 rayado: extrapolado</span>`;
+
+  // ---- déficit (barras apiladas por rango demandado) y sobrecupo (línea), mismo eje en %
+  const Wd = 420, md = { l: 38, r: 10, t: 14, b: 28 };
+  const ds = ANIOS.map(a => S.deficit[`${c}|${a * 100 + per}`] || [0, 0, [0, 0, 0, 0]]);
+  const dmax = Math.max(0.05, ...ds.map(d => Math.max(d[0], d[1]))) * 1.15;
+  const bw = (Wd - md.l - md.r) / 5, yd = v => md.t + (1 - v / dmax) * (H - md.t - md.b);
+  let t = "";
+  for (let v = 0; v <= dmax; v += 0.05) t += `<line x1="${md.l}" x2="${Wd - md.r}" y1="${yd(v)}" y2="${yd(v)}" stroke="var(--grid)"/><text x="${md.l - 6}" y="${yd(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`;
+  ds.forEach((d, i) => {
+    let acc = 0; const x0 = md.l + i * bw + bw * 0.22, w = bw * 0.56;
+    d[2].forEach((sh, r) => { const h = d[0] * sh; if (h <= 0) return;
+      t += `<rect data-j="${i}" x="${x0}" y="${yd(acc + h)}" width="${w}" height="${Math.max(0, yd(acc) - yd(acc + h) - 1)}" fill="${RAMPA[r]}" ${ANIOS[i] === 2031 ? 'opacity=".6"' : ""}/>`; acc += h; });
+    t += `<text x="${x0 + w / 2}" y="${H - 8}" text-anchor="middle"${ANIOS[i] === y0 ? ' font-weight="700" fill="var(--text-primary)"' : ""}>${ANIOS[i]}</text>`;
+    t += `<rect data-j="${i}" x="${md.l + i * bw}" y="${md.t}" width="${bw}" height="${H - md.t - md.b}" fill="transparent"/>`;
+  });
+  t += `<polyline points="${ds.map((d, i) => `${md.l + i * bw + bw / 2},${yd(d[1])}`).join(" ")}" fill="none" stroke="#ec835a" stroke-width="2"/>`;
+  ds.forEach((d, i) => t += `<circle cx="${md.l + i * bw + bw / 2}" cy="${yd(d[1])}" r="4" fill="#ec835a" stroke="var(--surface-1)" stroke-width="2"/>`);
+  const sd = document.getElementById("deficit"); sd.innerHTML = t;
+  sd.onmousemove = ev => { const j = ev.target.dataset && ev.target.dataset.j; if (j === undefined) return T.hide(); const d = ds[j];
+    T.show(ev, `<b>${ANIOS[j]}${ANIOS[j] === 2031 ? " · extrapolado" : ""}</b><br>Déficit <b>${pct(d[0])}</b> · sobrecupo ${pct(d[1])}<br><span class="m">El déficit pide salas de: ${S.rangos.slice(1).map((r, i) => `${r} ${Math.round(d[2][i] * 100)} %`).join(" · ")}</span>`); };
+  sd.onmouseleave = T.hide;
+  document.getElementById("ley2").innerHTML = S.rangos.slice(1).map((r, i) => `<span><i style="background:${RAMPA[i]}"></i>déficit · ${r}</span>`).join("") + `<span><i style="background:#ec835a"></i>sobrecupo</span>`;
+
+  // ---- pequeños múltiplos: por campus (todos) o por clase (un campus)
+  const grupos = c === "TODOS" ? CAMPUS.map(cc => [cc, "*", nombre(cc)]) : [[c, "SALA", "Salas"], [c, "LABORATORIO", "Laboratorios"]];
+  document.getElementById("tmult").textContent = c === "TODOS" ? "Dónde aparecen: celdas en alerta por campus" : "Dónde aparecen: salas y laboratorios";
+  document.getElementById("smult").textContent = `Escenario ${ESTADO.esc} · ordenados por las alertas del año ${y0} · el número grande es el año elegido`;
+  const filas = grupos.map(([cc, cl, nom]) => ({ cc, cl, nom, v: ANIOS.map(a => cnt(cc, cl, a, ESTADO.esc)[1]) }))
+    .sort((a, b) => b.v[ANIOS.indexOf(y0)] - a.v[ANIOS.indexOf(y0)]);
+  const mmax = Math.max(5, ...filas.flatMap(f => f.v));
+  document.getElementById("mult").innerHTML = filas.map(f => {
+    const pri = ANIOS.find((a, i) => f.v[i] > 0), w = 180, h = 54;
+    const bars = f.v.map((v, i) => `<rect x="${i * (w / 5) + 4}" y="${h - v / mmax * (h - 4)}" width="${w / 5 - 8}" height="${v / mmax * (h - 4)}" rx="2" fill="${ANIOS[i] === y0 ? "var(--accent)" : "var(--band)"}" ${ANIOS[i] === 2031 ? 'opacity=".6"' : ""}/>`).join("");
+    const lab = (f.cc === "C01" && (f.cl === "LABORATORIO" || f.cl === "*")) ? `<div class="valida">⚠ laboratorios de 60 o más: a validar con infraestructura</div>` : "";
+    return `<div class="card"><h3>${f.nom}</h3><p class="s">${pri ? "primera alerta: " + pri : "sin alertas al 2031"}</p>
+      <div style="display:flex;align-items:flex-end;gap:10px"><div class="n" style="font-size:26px;font-weight:650">${f.v[ANIOS.indexOf(y0)]}</div>
+      <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}">${bars}</svg></div>${lab}</div>`;
+  }).join("");
+
+  // ---- tabla
+  document.getElementById("tabla").innerHTML = "<table><tr><th>Escenario</th>" + ANIOS.map(a => `<th>${a}${a === 2031 ? "*" : ""}</th>`).join("") + "</tr>" +
+    ["bajo", "base", "alto"].map(e => `<tr><td>${e}</td>${vals[e].map(v => `<td>${v}</td>`).join("")}</tr>`).join("") +
+    `<tr><td>déficit (base)</td>${ds.map(d => `<td>${pct(d[0])}</td>`).join("")}</tr><tr><td>sobrecupo (base)</td>${ds.map(d => `<td>${pct(d[1])}</td>`).join("")}</tr></table><p>* extrapolado. 2027 bajo/alto: banda de Euribia: otra definición, no comparable con 2028–2031.</p>`;
+}
+alCambiar(render);
+render();
+</script>
+</body>
+</html>

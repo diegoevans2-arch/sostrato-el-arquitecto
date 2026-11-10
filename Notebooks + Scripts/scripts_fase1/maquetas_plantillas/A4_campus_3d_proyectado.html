@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dónde no cabe</title>
+<style>
+  :root { --bg: #111318; --ink: #f0efec; --ink2: #b9b8b0; --ink3: #7d7c76; --pill: #1d2027; --pill-b: #33363e; --accent: #3987e5; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+  #c { position: fixed; inset: 0; display: block; }
+  .hud { position: fixed; pointer-events: none; }
+  .tl { top: 22px; left: 26px; max-width: 520px; }
+  .tl h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: .01em; }
+  .tl .k { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink3); margin-top: 4px; }
+  .tl p { font-size: 12.5px; color: var(--ink2); line-height: 1.5; margin: 10px 0 0; }
+  .tr { top: 22px; right: 26px; text-align: right; }
+  .tr .n { font-size: 52px; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tr .n small { font-size: 18px; color: var(--ink2); font-weight: 400; }
+  .tr .s { font-size: 13px; color: var(--ink2); margin-top: 6px; line-height: 1.5; }
+  .ley { bottom: 92px; left: 26px; font-size: 12px; color: var(--ink2); display: flex; flex-direction: column; gap: 5px; }
+  .ley i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+  .bar { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; max-width: calc(100% - 32px); }
+  .pill { background: var(--pill); border: 1px solid var(--pill-b); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 13px; cursor: pointer; }
+  .pill[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .seg { display: inline-flex; gap: 2px; background: var(--pill); border: 1px solid var(--pill-b); border-radius: 999px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--ink2); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .rng { display: flex; align-items: center; gap: 8px; background: var(--pill); border: 1px solid var(--pill-b); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; color: var(--ink2); }
+  .rng input { width: 180px; accent-color: var(--accent); }
+  .tip { position: fixed; pointer-events: none; background: #1d2027f2; border: 1px solid var(--pill-b); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.45; opacity: 0; max-width: 260px; }
+  .tip .m { color: var(--ink2); }
+  .src { bottom: 6px; right: 12px; font-size: 10.5px; color: var(--ink3); }
+  .capas { position: fixed; top: 128px; right: 26px; background: var(--pill); border: 1px solid var(--pill-b); border-radius: 12px; padding: 10px; width: 188px; font-size: 12.5px; color: var(--ink2); }
+  .capas h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink3); font-weight: 600; }
+  .capas .modos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .capas .modo { border: 2px solid transparent; border-radius: 8px; background: #262931; color: var(--ink); padding: 0 0 6px; font: inherit; font-size: 12px; cursor: pointer; overflow: hidden; }
+  .capas .modo[aria-pressed="true"] { border-color: var(--accent); }
+  .capas .modo i { display: block; height: 38px; margin-bottom: 5px; }
+  .capas .det { margin-top: 10px; display: grid; gap: 6px; }
+  .capas .det[hidden] { display: none; }
+  .capas label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .capas input { accent-color: var(--accent); }
+  @media (max-width: 760px) { .capas { top: auto; bottom: 150px; } }
+  .embed .solo-suelta, .embed .tl .k { display: none !important; }
+  .capas { top: 170px !important; }
+  .nota3d { top: 150px; left: 26px; max-width: 460px; font-size: 12px; color: #ffd38a; }
+  .nota3d span { display: block; background: #3a2a0d; border: 1px solid #6b4a14; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; }
+  @media (max-width: 760px) { .tl p, .ley { display: none; } .tr .n { font-size: 36px; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud tl">
+  <h1 id="titulo"></h1>
+  <div class="k">Sóstrato el Arquitecto · simulación de alertas · A4</div>
+  <select id="campus" class="pill solo-suelta" aria-label="Campus" style="pointer-events:auto;margin-top:10px"></select>
+  <p>Cada bloque es una sala o laboratorio activo, sobre la planta real de su edificio (OpenStreetMap). Se enciende si la <b>programación sintética</b> del modelo le asigna una sección; <b>naranja</b> = sobrecupo tolerado. Las secciones que no encuentran sala de su tamaño <b>flotan en rojo</b> sobre el campus: el tamaño del cubo es el de la sala que piden. «≈» = edificio ubicado por tamaño.</p>
+</div>
+<div class="hud tr"><div class="n" id="big"></div><div class="s" id="cuando"></div></div>
+<div class="capas" role="group" aria-label="Capas del mapa">
+  <h4>Capas</h4>
+  <div class="modos">
+    <button class="modo" data-v="clasica" aria-pressed="true"><i style="background:linear-gradient(135deg,#1a1c21 55%,#2a78d6 55% 70%,#1a1c21 70%)"></i>Clásica</button>
+    <button class="modo" data-v="entorno" aria-pressed="false"><i style="background:linear-gradient(135deg,#23402d 0 30%,#3b3f48 30% 36%,#1b3a5c 36% 62%,#343740 62% 100%)"></i>Entorno</button>
+  </div>
+  <div class="det" id="det" hidden>
+    <label><input type="checkbox" id="cCalles" checked> Calles y nombres</label>
+    <label><input type="checkbox" id="cBarrio" checked> Edificios, áreas verdes y lagunas</label>
+  </div>
+</div>
+<div class="hud nota3d" id="nota3d"></div>
+<div class="hud ley">
+  <span><i style="background:#3a3e47"></i>libre</span>
+  <span><i style="background:#9ec5f4"></i>ocupada · menos de 50 % de su capacidad</span>
+  <span><i style="background:#3987e5"></i>50–90 %</span>
+  <span><i style="background:#1c5cab;box-shadow:0 0 0 1px #6da7ec inset"></i>90–100 %</span>
+  <span><i style="background:#ec835a"></i>sobrecupo tolerado</span>
+  <span><i style="background:#d03b3b"></i>sección sin sala (déficit)</span>
+</div>
+<div class="bar">
+  <div class="seg" id="dias"></div>
+  <div class="rng"><span id="hora">09:30</span><input type="range" id="bloque" min="1" max="19" value="3" aria-label="Bloque horario"></div>
+  <button class="pill" id="play">▶ Reproducir el día</button>
+  <button class="pill" id="rot" aria-pressed="false">Rotación automática</button>
+  <button class="pill" id="reset">Restablecer vista</button>
+</div>
+<div class="hud src">Programación sintética del modelo · escenario base · Modelos.ipynb (28-10-2026) · plantas © colaboradores de OpenStreetMap · Dirección de Ingeniería de Datos · UNIV</div>
+<div class="tip" id="tip"></div>
+
+<script type="module">
+/*__ESTADO_JS__*/
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const DATA = /*__DATOS__*/;
+const OSM_UNO = /*__OSM__*/;
+const ORDEN = ["C01", "C02", "C03", "C04", "C05", "C06", "C07"];
+const CAMPUS = DATA.campus;
+const SEDES = /*__SEDES__*/;
+const HORAS = ["08:00","08:40","09:30","10:10","11:00","11:40","12:30","13:10","14:40","15:20","16:10","16:50","17:35","18:15","19:00","19:40","20:25","21:05","21:50"];
+const DIAS = DATA.dias, DNOM = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+document.getElementById("titulo").textContent = nice((SEDES[DATA.campus] || DATA.campus).replace(/^.*?[-–]\s*/, "")) + " en 3D";
+
+let occ = {}, defi = [];
+function claveP() {                       // programación sintética: semestres de pregrado, escenario base
+  const n = []; let per = ESTADO.per;
+  if (![10, 20].includes(per)) { n.push(`La programación sintética cubre los semestres de pregrado: se muestra el 1.er semestre.`); per = 10; }
+  if (ESTADO.esc !== "base") n.push("La programación sintética existe solo para el escenario base.");
+  n.push(...avisos());
+  document.getElementById("nota3d").innerHTML = n.map(t => `<span>⚠ ${t}</span>`).join("");
+  return { k: String(ESTADO.anio * 100 + per), per };
+}
+function cargarOcc() {
+  const { k } = claveP(); occ = {}; defi = [];
+  const o = DATA.ocup[k] || [];
+  for (let i = 0; i < o.length; i += 6) {
+    const key = DATA.salas[o[i]].SALA_ID + "|" + DATA.dias[o[i + 1]] + "|" + o[i + 2], prev = occ[key];
+    if (!prev || o[i + 3] > prev.INSCRITOS) occ[key] = { INSCRITOS: o[i + 3], ASIG: DATA.materias[o[i + 4]], SOBRE: o[i + 5] || (prev && prev.SOBRE) };
+  }
+  const d = DATA.deficit[k] || [];
+  for (let i = 0; i < d.length; i += 6) defi.push({ dia: DATA.dias[d[i]], b: d[i + 1], rg: d[i + 2], ins: d[i + 3], mat: DATA.materias[d[i + 4]] });
+}
+cargarOcc();
+let dia = "MIERCOLES", bloque = 3, timer = null;
+
+// ---------- escena
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111318);
+scene.fog = new THREE.Fog(0x111318, 220, 420);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.5, 1000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 30; controls.maxDistance = 320;
+controls.autoRotateSpeed = 0.6;
+
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x1a1c22, 0.85));
+const sun = new THREE.DirectionalLight(0xfff4e5, 1.6);
+sun.position.set(-90, 140, 70); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -160, right: 160, top: 160, bottom: -160, near: 10, far: 400 });
+scene.add(sun);
+
+// ---------- edificios: planta real de OpenStreetMap + salas generadas desde la planta física
+const OSM = OSM_UNO;
+const ROOM_D = 4.2, CORR = 1.6, FLOOR_H = 3.4, ROOM_H = 2.7, GAP = 0.35;
+const anchoSala = cap => Math.max(2.6, Math.min(11, Math.sqrt(cap) * 0.95));
+const COL_LIBRE = new THREE.Color(0x3a3e47), COL = [new THREE.Color(0x9ec5f4), new THREE.Color(0x3987e5), new THREE.Color(0x1c5cab)];
+const roomMeshes = [];
+const geoBox = new THREE.BoxGeometry(1, 1, 1);
+const slabMat = new THREE.MeshStandardMaterial({ color: 0x8d8f96, roughness: 0.9 });
+const roofMat = new THREE.MeshStandardMaterial({ color: 0x9a9ca3, roughness: 0.8 });
+const masaMat = new THREE.MeshStandardMaterial({ color: 0x4a4d55, roughness: 0.9, transparent: true, opacity: 0.75 });
+const grupo = new THREE.Group(); scene.add(grupo);
+const W2 = (e, n) => new THREE.Vector3(e, 0, -n);          // este/norte (m) → escena (x, z)
+
+// plan de salas por edificio: dos crujías por piso
+const plan = {};
+[...new Set(DATA.salas.map(s => s.EDIFICIO))].forEach(ed => {
+  const ss = DATA.salas.filter(s => s.EDIFICIO === ed);
+  const pisos = [...new Set(ss.map(s => s.PISO))].sort((a, b) => a - b);
+  const fl = pisos.map(p => {
+    const rs = ss.filter(s => s.PISO === p).sort((a, b) => a.CODIGO.localeCompare(b.CODIGO));
+    const filas = [[], []], largo = [0, 0];
+    rs.forEach(r => { const i = largo[0] <= largo[1] ? 0 : 1; const w = anchoSala(r.CAPACIDAD); filas[i].push([r, largo[i], w]); largo[i] += w + GAP; });
+    return { p, filas, largo: Math.max(...largo) };
+  });
+  plan[ed] = { pisos: Math.max(...pisos) + 1, fl, largo: Math.max(...fl.map(f => f.largo)) };
+});
+const letraDe = ed => ed.startsWith(CAMPUS) ? ed.slice(CAMPUS.length) : ed.slice(2);   // C01B → B · C03A → A · C01ECD → ECD · C05SCDIZ → CDIZ
+
+// rectángulo orientado (eje principal) de un polígono
+function obb(P) {
+  const n = P.length, mx = P.reduce((a, p) => a + p[0], 0) / n, my = P.reduce((a, p) => a + p[1], 0) / n;
+  let sxx = 0, syy = 0, sxy = 0;
+  P.forEach(([x, y]) => { sxx += (x - mx) ** 2; syy += (y - my) ** 2; sxy += (x - mx) * (y - my); });
+  const t = 0.5 * Math.atan2(2 * sxy, sxx - syy), c = Math.cos(t), s = Math.sin(t);
+  const a = P.map(([x, y]) => (x - mx) * c + (y - my) * s), b = P.map(([x, y]) => -(x - mx) * s + (y - my) * c);
+  const a0 = Math.min(...a), a1 = Math.max(...a), b0 = Math.min(...b), b1 = Math.max(...b);
+  const ac = (a0 + a1) / 2, bc = (b0 + b1) / 2;
+  return { t, L: a1 - a0, Wd: b1 - b0, cx: mx + ac * c - bc * s, cy: my + ac * s + bc * c };
+}
+function losa(P, y, mat) {
+  const sh = new THREE.Shape(P.map(([x, n]) => new THREE.Vector2(x, n)));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: 0.28, bevelEnabled: false }); g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, mat); m.position.y = y; m.castShadow = m.receiveShadow = true; return m;
+}
+function masa(P, h) {
+  const sh = new THREE.Shape(P.map(([x, n]) => new THREE.Vector2(x, n)));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false }); g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, masaMat); m.castShadow = m.receiveShadow = true; return m;
+}
+// apila las salas de un edificio dentro de un rectángulo orientado
+function apilar(ed, R, pisosVis) {
+  const pl = plan[ed], u = [Math.cos(R.t), Math.sin(R.t)], v = [-Math.sin(R.t), Math.cos(R.t)];
+  const dr = Math.max(1.6, (R.Wd - CORR) / 2 - 0.4), esc = (R.L - 1.2) / pl.largo;   // las salas llenan la planta hasta las fachadas
+  pl.fl.forEach(({ p, filas }) => filas.forEach((rs, i) => rs.forEach(([r, x0, w]) => {
+    const a = -R.L / 2 + 0.6 + (x0 + w / 2) * esc, b = (i === 0 ? -1 : 1) * (CORR / 2 + dr / 2);
+    const m = new THREE.Mesh(geoBox, new THREE.MeshStandardMaterial({ color: COL_LIBRE, roughness: 0.55, metalness: 0.05, transparent: true, opacity: 0.55 }));
+    m.scale.set(Math.max(1, w * esc - GAP * 0.3), ROOM_H, dr);
+    m.position.copy(W2(R.cx + a * u[0] + b * v[0], R.cy + a * u[1] + b * v[1])); m.position.y = p * FLOOR_H + 0.14 + ROOM_H / 2;
+    m.rotation.y = R.t; m.castShadow = true; m.userData = r; grupo.add(m); roomMeshes.push(m);
+  })));
+}
+
+// contorno del campus
+const cont = OSM.contorno;
+{ const sh = new THREE.Shape(cont.map(([x, n]) => new THREE.Vector2(x, n)));
+  const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x262a31, roughness: 1 })); m.position.y = 0.03; m.receiveShadow = true; grupo.add(m);
+  const lg = new THREE.BufferGeometry().setFromPoints([...cont, cont[0]].map(([x, n]) => W2(x, n).setY(0.08)));
+  grupo.add(new THREE.Line(lg, new THREE.LineBasicMaterial({ color: 0x6d6f76 }))); }
+
+const ubicados = new Set();
+OSM.edificios.forEach(b => {
+  const ed = Object.keys(plan).find(e => letraDe(e) === b.letra);
+  const R = obb(b.P);
+  if (ed && b.usar) {
+    const pl = plan[ed];
+    for (let k = 0; k <= pl.pisos; k++) grupo.add(losa(b.P, k * FLOOR_H, k === pl.pisos ? roofMat : slabMat));
+    apilar(ed, R);
+    const lb = etiqueta(b.letra + (b.aprox ? " ≈" : ""), pl.pisos * FLOOR_H + 4); lb.position.x = R.cx; lb.position.z = -R.cy; grupo.add(lb);
+    ubicados.add(ed);
+  } else if (b.letra && !b.usar) {
+    // segunda parte del mismo edificio en OSM: solo volumen de contexto bajo
+    grupo.add(masa(b.P, FLOOR_H));
+  } else {
+    const h = (b.niveles || (b.area > 600 ? 2 : 1)) * FLOOR_H;
+    grupo.add(masa(b.P, h));
+    if (b.nombre && /Ficticia|UNIV|Edificio [A-Z]|gimnasio|casino|auditorio|capilla|biblioteca|facultad/i.test(b.nombre) && !/Austral|UACH|Católica|Andr[eé]s Bello|Universidad de Chile/i.test(b.nombre)) { const lb = etiqueta(b.nombre.replace(/^Edificio /, "").replace(/ Universidad Ficticia/, ""), h + 3, 0.55); lb.position.x = R.cx; lb.position.z = -R.cy; grupo.add(lb); }
+  }
+});
+
+// edificios de la planta física sin planta en OSM: al costado, rotulados
+const bb = cont.reduce((a, [x, y]) => [Math.min(a[0], x), Math.max(a[1], x), Math.min(a[2], y), Math.max(a[3], y)], [1e9, -1e9, 1e9, -1e9]);
+let ox = bb[1] + 30;
+Object.keys(plan).filter(e => !ubicados.has(e)).forEach(ed => {
+  const pl = plan[ed], L = pl.largo + 1.2, Wd = ROOM_D * 2 + CORR + 1.2, R = { t: 0, L, Wd, cx: ox + L / 2, cy: (bb[2] + bb[3]) / 2 };
+  const P = [[R.cx - L / 2, R.cy - Wd / 2], [R.cx + L / 2, R.cy - Wd / 2], [R.cx + L / 2, R.cy + Wd / 2], [R.cx - L / 2, R.cy + Wd / 2]];
+  for (let k = 0; k <= pl.pisos; k++) grupo.add(losa(P, k * FLOOR_H, k === pl.pisos ? roofMat : slabMat));
+  apilar(ed, R);
+  const lb = etiqueta(letraDe(ed) + " · sin ubicación", pl.pisos * FLOOR_H + 4, 0.7); lb.position.x = R.cx; lb.position.z = -R.cy; grupo.add(lb);
+  ox += L + 16;
+});
+
+const suelo = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x1a1c21, roughness: 1 }));
+suelo.rotation.x = -Math.PI / 2; suelo.receiveShadow = true; scene.add(suelo);
+
+function etiqueta(txt, y, k = 1) {                  // rótulo del ancho de su texto; k escala (1 = letra de edificio)
+  const cv = document.createElement("canvas"), x = cv.getContext("2d"), F = "600 64px Segoe UI, sans-serif";
+  x.font = F; cv.width = Math.ceil(x.measureText(txt).width) + 48; cv.height = 96;
+  x.font = F; x.fillStyle = "#f0efec"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(txt, cv.width / 2, 48);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
+  const h = 14 * k; sp.scale.set(h * cv.width / cv.height, h, 1); sp.position.y = y + h / 2 + 1; return sp;
+}
+
+// ---------- capas de entorno (OpenStreetMap): calles y barrio. No entran al encuadre ni a los conteos.
+const ENT = OSM.entorno || { calles: [], vecinos: [], verde: [], agua: [] };
+const capaCalles = new THREE.Group(), capaBarrio = new THREE.Group();
+capaCalles.visible = capaBarrio.visible = false;
+scene.add(capaCalles, capaBarrio);
+
+function cinta(L, ancho, y, mat) {                 // polilínea → franja plana del ancho de la calle
+  const pos = [], idx = [], h = ancho / 2;
+  L.forEach(([x, n], i) => {
+    const a = L[Math.max(0, i - 1)], b = L[Math.min(L.length - 1, i + 1)];
+    let dx = b[0] - a[0], dy = b[1] - a[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+    pos.push(x - dy * h, y, -(n + dx * h), x + dy * h, y, -(n - dx * h));
+    if (i) { const k = 2 * i; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, mat); m.receiveShadow = true; return m;
+}
+function plano(P, y, mat) {
+  const g = new THREE.ShapeGeometry(new THREE.Shape(P.map(([x, n]) => new THREE.Vector2(x, n)))); g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, mat); m.position.y = y; m.receiveShadow = true; return m;
+}
+
+// capa 1 · calles y sus nombres
+const matVia = new THREE.MeshStandardMaterial({ color: 0x3b3f48, roughness: 1, side: THREE.DoubleSide });
+const matPeaton = new THREE.MeshStandardMaterial({ color: 0x5a5d66, roughness: 1, side: THREE.DoubleSide });
+const PEATON = new Set(["footway", "path", "cycleway", "steps", "pedestrian"]);
+const nombrados = {};
+ENT.calles.forEach(c => {
+  capaCalles.add(cinta(c.L, c.ancho, PEATON.has(c.tipo) ? 0.06 : 0.05, PEATON.has(c.tipo) ? matPeaton : matVia));
+  if (c.nombre && c.ancho >= 6) (nombrados[c.nombre] = nombrados[c.nombre] || []).push(c.L);
+});
+Object.entries(nombrados).forEach(([nom, tramos]) => {    // un rótulo por calle, en el punto medio de su tramo más largo
+  const lar = L => L.slice(1).reduce((s, p, i) => s + Math.hypot(p[0] - L[i][0], p[1] - L[i][1]), 0);
+  const L = tramos.sort((a, b) => lar(b) - lar(a))[0]; if (lar(L) < 90) return;
+  const [x, n] = L[Math.floor(L.length / 2)];
+  const lb = etiqueta(nom, 0.5, 1.0); lb.position.x = x; lb.position.z = -n; capaCalles.add(lb);
+});
+
+// capa 2 · barrio: áreas verdes, lagunas y edificios vecinos
+const matVerde = new THREE.MeshStandardMaterial({ color: 0x23402d, roughness: 1 });
+const matAgua = new THREE.MeshStandardMaterial({ color: 0x1b3a5c, roughness: 0.35, metalness: 0.1 });
+const matVecino = new THREE.MeshStandardMaterial({ color: 0x343740, roughness: 0.95 });
+ENT.verde.forEach(v => capaBarrio.add(plano(v.P, 0.035, matVerde)));
+ENT.agua.forEach(a => {
+  capaBarrio.add(plano(a.P, 0.045, matAgua));
+  if (a.nombre) { const c = a.P.reduce((s, p) => [s[0] + p[0] / a.P.length, s[1] + p[1] / a.P.length], [0, 0]);
+    const lb = etiqueta(a.nombre, 1, 1.3); lb.position.x = c[0]; lb.position.z = -c[1]; capaBarrio.add(lb); }
+});
+ENT.vecinos.forEach(b => {
+  const h = (b.niveles || (b.area > 1500 ? 3 : b.area > 400 ? 2 : 1)) * 3;
+  const g = new THREE.ExtrudeGeometry(new THREE.Shape(b.P.map(([x, n]) => new THREE.Vector2(x, n))), { depth: h, bevelEnabled: false });
+  g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, matVecino); m.castShadow = m.receiveShadow = true; capaBarrio.add(m);
+});
+
+// ---------- cámara
+function vistaInicial() {                      // encuadra todo el campus según el tamaño y la forma de la ventana
+  const caja = new THREE.Box3();                                           // sin los rótulos: solo edificios y contorno
+  grupo.children.forEach(o => { if (!o.isSprite) caja.expandByObject(o); });
+  const esfera = caja.getBoundingSphere(new THREE.Sphere());
+  const fv = THREE.MathUtils.degToRad(camera.fov) / 2, fh = Math.atan(Math.tan(fv) * camera.aspect);
+  const dist = esfera.radius / Math.sin(Math.min(fv, fh)) * 1.05;
+  const dir = new THREE.Vector3(-0.35, 0.82, 0.6).normalize();
+  controls.target.copy(esfera.center);
+  camera.position.copy(esfera.center).addScaledVector(dir, dist);
+  camera.far = dist * 4; camera.updateProjectionMatrix();                 // niebla, plano lejano y sombras a la escala del campus real
+  scene.fog = new THREE.Fog(0x111318, dist * 1.3, dist * 3.2);
+  const r = esfera.radius * 1.1;
+  Object.assign(sun.shadow.camera, { left: -r, right: r, top: r, bottom: -r, near: 1, far: r * 4 });
+  sun.position.copy(esfera.center).add(new THREE.Vector3(-0.5, 0.9, 0.45).multiplyScalar(r * 1.6)); sun.target.position.copy(esfera.center);
+  scene.add(sun.target); sun.shadow.camera.updateProjectionMatrix();
+  controls.maxDistance = dist * 1.8; controls.minDistance = 15; controls.update();
+}
+
+// ---------- nube de secciones sin sala: un cubo rojo por sección, del tamaño de la sala que pide
+const COL_SOBRE = new THREE.Color(0xec835a);
+const rangoMin = () => Math.max(0, DATA.rangos.indexOf(ESTADO.rango));
+const nube = new THREE.Group(); scene.add(nube);
+const matDef = new THREE.MeshStandardMaterial({ color: 0xd03b3b, emissive: 0x4a0b0b, roughness: 0.5 });
+const LADO = [2.4, 3.4, 4.6, 6.2];
+const cajaCampus = (() => { const b = new THREE.Box3(); grupo.children.forEach(o => { if (!o.isSprite) b.expandByObject(o); }); return b; })();
+function pintarNube(lista) {
+  nube.clear(); if (!lista.length) return;
+  const c = cajaCampus.getCenter(new THREE.Vector3()), y0 = cajaCampus.max.y + 14;
+  const orden = [...lista].sort((a, b) => b.rg - a.rg), cols = Math.ceil(Math.sqrt(orden.length)), paso = 7.5;
+  orden.forEach((d, i) => {
+    const m = new THREE.Mesh(geoBox, matDef), l = LADO[d.rg];
+    m.scale.set(l, l, l); m.castShadow = true;
+    m.position.set(c.x + ((i % cols) - (cols - 1) / 2) * paso, y0 + Math.floor(i / cols) * paso * 0.9, c.z);
+    m.userData = { deficit: d }; nube.add(m);
+  });
+  const lb = etiqueta(`${lista.length} sin sala`, y0 + Math.ceil(orden.length / cols) * paso * 0.9 + 2, 1.1);
+  lb.position.x = c.x; lb.position.z = c.z; nube.add(lb);
+}
+
+// ---------- estado por bloque
+function pintar() {
+  let k = 0;
+  roomMeshes.forEach(m => {
+    const o = occ[m.userData.SALA_ID + "|" + dia + "|" + bloque];
+    const mat = m.material;
+    const fuera = DATA.rangos.indexOf(m.userData.RANGO) < rangoMin();          // filtro de tamaño: salas más chicas, atenuadas
+    if (o && !fuera) {
+      const f = m.userData.CAPACIDAD > 0 ? o.INSCRITOS / m.userData.CAPACIDAD : 0.5;
+      const c = o.SOBRE ? COL_SOBRE : COL[f >= 0.9 ? 2 : f >= 0.5 ? 1 : 0];
+      mat.color.copy(c); mat.emissive.copy(c).multiplyScalar(0.18); mat.opacity = 1; k++;
+    } else { mat.color.copy(COL_LIBRE); mat.emissive.setRGB(0, 0, 0); mat.opacity = fuera ? 0.12 : 0.55; }
+  });
+  const n = roomMeshes.filter(m => DATA.rangos.indexOf(m.userData.RANGO) >= rangoMin()).length;
+  const sin = defi.filter(d => d.dia === dia && d.b === bloque && d.rg >= rangoMin());
+  pintarNube(sin);
+  document.getElementById("big").innerHTML = `${k}<small> de ${n}</small>`;
+  const pk = claveP();
+  document.getElementById("cuando").innerHTML = `espacios ocupados · <b style="color:#ff8f8f">${sin.length} secciones sin sala</b><br>${DNOM[DIAS.indexOf(dia)]} · bloque ${bloque} · ${HORAS[bloque - 1]}<br>${nomPer(pk.per)} ${ESTADO.anio}${ESTADO.anio === 2031 ? " (extrapolado)" : ""}${ESTADO.rango !== "todos" ? " · salas de " + ESTADO.rango + " o más" : ""}`;
+  document.getElementById("hora").textContent = HORAS[bloque - 1];
+  document.getElementById("bloque").value = bloque;
+}
+
+// ---------- controles
+document.getElementById("dias").innerHTML = DIAS.map((d, i) => `<button data-v="${d}" aria-pressed="${d === dia}">${DNOM[i].slice(0, 3)}</button>`).join("");
+document.querySelectorAll("#dias button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#dias button").forEach(o => o.setAttribute("aria-pressed", o === b)); dia = b.dataset.v; pintar(); });
+document.getElementById("bloque").oninput = e => { bloque = +e.target.value; pintar(); };
+document.getElementById("rot").onclick = e => { controls.autoRotate = !controls.autoRotate; e.target.setAttribute("aria-pressed", controls.autoRotate); };
+document.getElementById("reset").onclick = () => { vistaInicial(); capas(); };
+document.getElementById("play").onclick = e => {
+  if (timer) { clearInterval(timer); timer = null; e.target.textContent = "▶ Reproducir el día"; return; }
+  e.target.textContent = "❚❚ Pausa"; bloque = 1; pintar();
+  timer = setInterval(() => { bloque++; if (bloque > 19) { clearInterval(timer); timer = null; e.target.textContent = "▶ Reproducir el día"; bloque = 19; } pintar(); }, 650);
+};
+
+// ---------- tooltip
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(), tip = document.getElementById("tip");
+let hover = null;
+canvas.addEventListener("pointermove", ev => {
+  ptr.set(ev.clientX / innerWidth * 2 - 1, -(ev.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ptr, camera);
+  const hit = ray.intersectObjects([...roomMeshes, ...nube.children.filter(o => o.isMesh)], false)[0];
+  if (hover && hover !== (hit && hit.object)) { hover.scale.y = ROOM_H; hover = null; }
+  if (!hit) { tip.style.opacity = 0; return; }
+  if (hit.object.userData.deficit) { const d = hit.object.userData.deficit;
+    tip.innerHTML = `<b>Sección sin sala</b><br>${d.mat} · ${d.ins} inscritos (estimados)<br><span class="m">Pide sala de ${DATA.rangos[d.rg]}</span>`;
+    tip.style.left = ev.clientX + 14 + "px"; tip.style.top = ev.clientY + 14 + "px"; tip.style.opacity = 1; return; }
+  hover = hit.object; hover.scale.y = ROOM_H * 1.08;
+  const r = hover.userData, o = occ[r.SALA_ID + "|" + dia + "|" + bloque];
+  tip.innerHTML = `<b>${r.CODIGO}</b> · ${r.CLASE === "SALA" ? "sala" : "laboratorio"} · piso ${r.PISO}<br><span class="m">Capacidad ${r.CAPACIDAD}</span><br>` +
+    (o ? `${o.ASIG} · ${o.INSCRITOS} inscritos (estimados)<br><span class="m">Llenado ${Math.round(o.INSCRITOS / Math.max(r.CAPACIDAD, 1) * 100)} %${o.SOBRE ? " · sobrecupo tolerado" : ""} · rango ${r.RANGO}</span>` : "Libre en este bloque");
+  tip.style.left = ev.clientX + 14 + "px"; tip.style.top = ev.clientY + 14 + "px"; tip.style.opacity = 1;
+});
+canvas.addEventListener("pointerleave", () => tip.style.opacity = 0);
+
+// ---------- selector de capas (como en un mapa)
+let modo = "clasica";
+function capas() {
+  const ent = modo === "entorno";
+  capaCalles.visible = ent && document.getElementById("cCalles").checked;
+  capaBarrio.visible = ent && document.getElementById("cBarrio").checked;
+  document.getElementById("det").hidden = !ent;
+  scene.fog.near = ent ? camera.far * 0.45 : camera.far * 0.33;      // con entorno la niebla se aleja para ver el barrio
+  scene.fog.far = ent ? camera.far * 1.1 : camera.far * 0.8;
+}
+document.querySelectorAll(".modo").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".modo").forEach(o => o.setAttribute("aria-pressed", o === b)); modo = b.dataset.v; capas(); });
+["cCalles", "cBarrio"].forEach(id => document.getElementById(id).onchange = capas);
+
+// ---------- selector de campus
+const selC = document.getElementById("campus");
+selC.innerHTML = ORDEN.map(c => `<option value="${c}"${c === CAMPUS ? " selected" : ""}>${nice((SEDES[c] || c).replace(/^.*?[-–]\s*/, ""))}</option>`).join("");
+selC.onchange = () => { location.href = `A4_campus_3d_proyectado_${selC.value}.html${location.search}`; };   // un archivo por campus
+alCambiar(() => { cargarOcc(); pintar(); });
+
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener("resize", resize); resize();
+vistaInicial();
+capas();
+pintar();
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+</script>
+</body>
+</html>

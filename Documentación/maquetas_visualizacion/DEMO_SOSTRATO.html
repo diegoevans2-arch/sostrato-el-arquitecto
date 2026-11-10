@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sóstrato el Arquitecto · Demo</title>
+<style>.viz-root {
+  color-scheme: light;
+  --surface-0: #f6f5f2;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7974;
+  --grid: #e4e3df;
+  --neutral: #f0efec;
+  --accent: #2a78d6;
+  --band: #b7d3f6;
+  --critical: #d03b3b;
+  --free: #e9e8e4;
+  --free-stroke: #cfcec9;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  background: var(--surface-0);
+  color: var(--text-primary);
+  margin: 0;
+  min-height: 100vh;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+    --text-muted: #9a998f; --grid: #33332f; --neutral: #383835; --accent: #3987e5; --band: #1c5cab;
+    --free: #2a2a28; --free-stroke: #44443f;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+  --text-muted: #9a998f; --grid: #33332f; --neutral: #383835; --accent: #3987e5; --band: #1c5cab;
+  --free: #2a2a28; --free-stroke: #44443f;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 16px 48px; }
+.kicker { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 6px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 0 0 8px; font-weight: 650; }
+.dek { font-size: 15px; color: var(--text-secondary); max-width: 820px; margin: 0 0 18px; line-height: 1.5; }
+.aviso { font-size: 13px; color: var(--text-secondary); background: var(--surface-1); border-left: 3px solid var(--text-muted);
+         padding: 8px 12px; margin: 0 0 18px; max-width: 900px; line-height: 1.45; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 0 0 16px; font-size: 13px; color: var(--text-secondary); }
+.seg { display: inline-flex; border: 1px solid var(--grid); border-radius: 6px; overflow: hidden; background: var(--surface-1); }
+.seg button { border: 0; background: transparent; padding: 6px 10px; font: inherit; color: var(--text-secondary); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+.card { background: var(--surface-1); border-radius: 10px; padding: 16px; }
+.hero { display: flex; gap: 32px; flex-wrap: wrap; margin: 0 0 18px; }
+.hero .n { font-size: 34px; font-weight: 650; line-height: 1; }
+.hero .l { font-size: 13px; color: var(--text-secondary); margin-top: 4px; max-width: 260px; }
+.tip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--grid);
+       border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.45; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+       opacity: 0; transition: opacity .08s; max-width: 280px; z-index: 10; }
+.tip b { font-weight: 650; }
+.tip .m { color: var(--text-secondary); }
+details { margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+details table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+details th, details td { padding: 3px 10px; border-bottom: 1px solid var(--grid); text-align: right; }
+details th:first-child, details td:first-child { text-align: left; }
+.fuente { font-size: 12px; color: var(--text-muted); margin-top: 20px; line-height: 1.5; }
+svg text { fill: var(--text-secondary); font-size: 11px; }
+
+/* modo embebido (dentro de la demo): sin rótulo de maqueta ni selectores propios de campus */
+.embed .kicker, .embed .solo-suelta { display: none !important; }
+.embed .wrap { padding-top: 14px; }
+
+/* simulación de alertas */
+.aviso-chip { display: inline-block; font-size: 12px; background: #fff4e5; color: #7a4a00; border: 1px solid #f3c978; border-radius: 6px; padding: 4px 8px; margin: 0 8px 8px 0; }
+:root[data-theme="dark"] .aviso-chip { background: #3a2a0d; color: #ffd38a; border-color: #6b4a14; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .aviso-chip { background: #3a2a0d; color: #ffd38a; border-color: #6b4a14; } }
+.ctl-sel { font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--grid); background: var(--surface-1); color: var(--text-primary); }
+.embed #ctl { display: none; }
+.sem { display: inline-flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); }
+.sem i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+
+html, body { height: 100%; }
+body.viz-root { display: flex; flex-direction: column; overflow: hidden; }
+header { background: var(--surface-1); border-bottom: 1px solid var(--grid); padding: 10px 20px 0; flex: none; }
+.fila { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; }
+.marca .t { font-size: 17px; font-weight: 650; }
+.marca .s { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.filtros { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 12.5px; color: var(--text-secondary); margin-top: 8px; }
+.filtros label { display: inline-flex; align-items: center; gap: 6px; }
+.filtros select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--grid); background: var(--surface-0); color: var(--text-primary); }
+.anios { display: inline-flex; border: 1px solid var(--grid); border-radius: 8px; overflow: hidden; }
+.anios button { border: 0; background: var(--surface-0); color: var(--text-secondary); font: inherit; font-size: 13px; padding: 5px 10px; cursor: pointer; }
+.anios button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); font-weight: 600; }
+.anios button.ex { font-style: italic; }
+.play { border: 1px solid var(--grid); background: var(--surface-0); color: var(--text-primary); border-radius: 8px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.modo { display: inline-flex; border: 1px solid var(--grid); border-radius: 999px; padding: 2px; background: var(--surface-0); }
+.modo button { border: 0; background: transparent; font: inherit; font-size: 12.5px; color: var(--text-secondary); padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.modo button[aria-pressed="true"] { background: var(--text-primary); color: var(--surface-1); }
+nav { display: flex; gap: 4px; margin-top: 8px; overflow-x: auto; }
+nav button { border: 0; background: transparent; font: inherit; font-size: 13.5px; color: var(--text-secondary); padding: 9px 14px; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+nav button small { display: block; font-size: 11px; color: var(--text-muted); }
+nav button[aria-selected="true"] { color: var(--text-primary); border-bottom-color: var(--accent); font-weight: 600; }
+.nota { font-size: 12.5px; color: var(--text-secondary); background: var(--surface-0); padding: 6px 20px; border-bottom: 1px solid var(--grid); flex: none; }
+.nota:empty { display: none; }
+.solo-sim[hidden] { display: none !important; }
+iframe { flex: 1; width: 100%; border: 0; background: var(--surface-0); }
+</style>
+</head>
+<body class="viz-root">
+<header>
+  <div class="fila">
+    <div class="marca">
+      <div class="t">Sóstrato el Arquitecto · Ocupación de los campus</div>
+      <div class="s" id="sub"></div>
+    </div>
+    <div class="modo" role="group" aria-label="Modo">
+      <button data-m="sim" aria-pressed="true">Simulación 2027–2031</button><button data-m="base" aria-pressed="false">Línea base 2026-1</button>
+    </div>
+  </div>
+  <div class="filtros">
+    <label>Campus <select id="campus" aria-label="Filtro de campus"></select></label>
+    <span class="solo-sim" id="fsim">
+      <label>Año <span class="anios" id="anios"></span></label>
+      <button class="play" id="play" title="Reproducir los años">▶ Reproducir</button>
+      <label>Período <select id="per"></select></label>
+      <label>Escenario <select id="esc"></select></label>
+      <label>Tamaño de sala <select id="rango"></select></label>
+    </span>
+  </div>
+  <nav role="tablist" id="tabs"></nav>
+</header>
+<div class="nota" id="nota"></div>
+<iframe id="vista" title="Vista de Sóstrato el Arquitecto"></iframe>
+<script>
+const SEDES = {"C05": "SEDE CENTRO- CAMPUS 05", "C04": "SEDE SUR-SEDE SUR", "C02": "SEDE CENTRO-CAMPUS 02", "C03": "SEDE AUSTRAL-CAMPUS 03", "C01": "SEDE NORTE-CAMPUS 01", "C10": "CAMPUS VIRTUAL", "C09": "SEDE VALLE", "C08": "SEDE LAGOS", "C06": "SEDE CENTRO-CAMPUS 06", "C07": "SEDE NORTE-CAMPUS 07", "C11": "SEDE NORTE-CAMPUS 11", "C12": "SEDE CENTRO-CAMPUS 12", "C13": "SEDE NORTE-CAMPUS 13"};
+const CAMPUS = ["C01", "C02", "C03", "C04", "C05", "C06", "C07"];
+const ANIOS = [2027, 2028, 2029, 2030, 2031];
+const PERIODOS = [[10, "1.er semestre"], [20, "2.º semestre"], [5, "AV · T1"], [15, "AV · T2"], [25, "AV · T3"]];
+const ESCENARIOS = [["base", "Base"], ["bajo", "Bajo"], ["alto", "Alto"]];
+const RANGOS = [["todos", "Todos los tamaños"], ["0-20", "0–20"], ["21-40", "21–40"], ["41-60", "41–60"], ["60 o más", "60 o más"]];
+const VISTAS = {
+  sim: [
+    { id: "curva", archivo: () => "A1_curva_alertas.html", nombre: "Curva de alertas", sub: "¿cuánto y desde cuándo?", todos: true },
+    { id: "mapa", archivo: () => "A2_mapa_alertas.html", nombre: "Mapa de alertas", sub: "¿en qué horas?", todos: true },
+    { id: "prog", archivo: c => `A3_programacion_proyectada_${c}.html`, nombre: "Programación proyectada", sub: "¿qué sala queda sin lugar?", todos: false },
+    { id: "nube", archivo: c => `A4_campus_3d_proyectado_${c}.html`, nombre: "Dónde no cabe (3D)", sub: "¿dónde se concentra?", todos: false },
+  ],
+  base: [
+    { id: "quiebre", archivo: () => "M1_linea_tiempo_quiebre.html", nombre: "Año de quiebre", sub: "ilustrativo", todos: true },
+    { id: "semana", archivo: () => "M2_matriz_incertidumbre.html", nombre: "Semana tipo", sub: "2026-1 real", todos: true },
+    { id: "salas", archivo: () => "M3_unit_chart_salas.html", nombre: "Sala por sala", sub: "abril 2026", todos: false },
+    { id: "campus3d", archivo: () => "M4_campus_3d.html", nombre: "Campus 3D", sub: "abril 2026", todos: false },
+  ],
+};
+const nice = s => s.toLowerCase().replace(/(^|[\s\-.(])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\bDe\b/g, "de");
+const nombre = c => nice((SEDES[c] || c).replace(/^.*?[-–]\s*/, ""));
+const opts = (el, arr) => document.getElementById(el).innerHTML = arr.map(([k, t]) => `<option value="${k}">${t}</option>`).join("");
+
+const st = { modo: "sim", vista: "curva", campus: "TODOS", anio: 2027, per: 10, esc: "base", rango: "todos" };
+document.getElementById("campus").innerHTML = `<option value="TODOS">Todos los campus</option>` + CAMPUS.map(c => `<option value="${c}">${nombre(c)}</option>`).join("");
+opts("per", PERIODOS); opts("esc", ESCENARIOS); opts("rango", RANGOS);
+document.getElementById("anios").innerHTML = ANIOS.map(a => `<button data-a="${a}" class="${a === 2031 ? "ex" : ""}" title="${a === 2031 ? "extrapolado" : ""}">${a}${a === 2031 ? "*" : ""}</button>`).join("");
+
+function leerHash() {
+  const p = location.hash.replace("#", "").split("/").map(decodeURIComponent);
+  if (VISTAS[p[0]]) st.modo = p[0];
+  if (p[1] && VISTAS[st.modo].some(v => v.id === p[1])) st.vista = p[1]; else st.vista = VISTAS[st.modo][0].id;
+  if (p[2] && (p[2] === "TODOS" || CAMPUS.includes(p[2]))) st.campus = p[2];
+  if (ANIOS.includes(+p[3])) st.anio = +p[3];
+  if (PERIODOS.some(x => x[0] === +p[4])) st.per = +p[4];
+  if (ESCENARIOS.some(x => x[0] === p[5])) st.esc = p[5];
+  if (RANGOS.some(x => x[0] === p[6])) st.rango = p[6];
+}
+function estadoVista(v) {
+  const campus = st.campus === "TODOS" && !v.todos ? CAMPUS[0] : st.campus;
+  return { campus, anio: st.anio, per: st.per, esc: st.esc, rango: st.rango };
+}
+function notas(v) {
+  const n = [];
+  if (st.campus === "TODOS" && !v.todos) n.push(`«${v.nombre}» muestra un campus a la vez: se abre ${nombre(CAMPUS[0])}. Elija otro en el filtro.`);
+  if (st.modo === "sim") {
+    if (st.anio === 2031) n.push("2031 es extrapolado.");
+    if (st.anio === 2027 && st.esc !== "base") n.push(`2027 · escenario ${st.esc}: banda de Euribia: otra definición, no comparable con 2028–2031.`);
+    n.push("La banda de cada celda se lee sola: las cifras cuentan celdas por escenario y nunca suman P10 o P90. El valor está en el crecimiento y el riesgo, no en la ubicación fina.");
+  }
+  return n.join(" · ");
+}
+function mostrar() {
+  const lista = VISTAS[st.modo], v = lista.find(x => x.id === st.vista) || lista[0]; st.vista = v.id;
+  document.getElementById("tabs").innerHTML = lista.map(x => `<button role="tab" data-v="${x.id}" aria-selected="${x.id === v.id}">${x.nombre}<small>${x.sub}</small></button>`).join("");
+  document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { st.vista = b.dataset.v; mostrar(); });
+  document.querySelectorAll(".modo button").forEach(b => b.setAttribute("aria-pressed", b.dataset.m === st.modo));
+  document.getElementById("fsim").hidden = st.modo !== "sim";
+  document.getElementById("sub").textContent = st.modo === "sim"
+    ? "Simulación de alertas con los resultados del modelo (Modelos.ipynb, 28-10-2026) · Dirección de Ingeniería de Datos · UNIV"
+    : "Línea base: programación real 2026-1 (pregrado y AV) · Dirección de Ingeniería de Datos · UNIV";
+  ["campus", "per", "esc", "rango"].forEach(k => document.getElementById(k).value = st[k]);
+  document.querySelectorAll("#anios button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.a === st.anio));
+  document.getElementById("nota").textContent = notas(v);
+  const e = estadoVista(v), f = document.getElementById("vista");
+  const src = `${v.archivo(e.campus)}?embed=1&` + new URLSearchParams(e).toString();
+  const base = src.split("?")[0], actual = (f.getAttribute("src") || "").split("?")[0];
+  if (base !== actual) f.setAttribute("src", src);                       // otra vista u otro archivo de campus: se carga
+  else if (f.contentWindow) f.contentWindow.postMessage({ cirilo: 1, estado: e }, "*");   // misma vista: se actualiza sin recargar
+  const h = "#" + [st.modo, st.vista, st.campus, st.anio, st.per, st.esc, st.rango].map(encodeURIComponent).join("/");
+  if (location.hash !== h) history.replaceState(null, "", h);
+}
+document.querySelectorAll(".modo button").forEach(b => b.onclick = () => { st.modo = b.dataset.m; st.vista = VISTAS[st.modo][0].id; mostrar(); });
+document.getElementById("campus").onchange = e => { st.campus = e.target.value; mostrar(); };
+document.getElementById("per").onchange = e => { st.per = +e.target.value; mostrar(); };
+document.getElementById("esc").onchange = e => { st.esc = e.target.value; mostrar(); };
+document.getElementById("rango").onchange = e => { st.rango = e.target.value; mostrar(); };
+document.querySelectorAll("#anios button").forEach(b => b.onclick = () => { st.anio = +b.dataset.a; mostrar(); });
+let timer = null;
+document.getElementById("play").onclick = e => {           // V3 · reproductor común: recorre 2027 → 2031
+  if (timer) { clearInterval(timer); timer = null; e.target.textContent = "▶ Reproducir"; return; }
+  e.target.textContent = "❚❚ Pausa"; st.anio = 2027; mostrar();
+  timer = setInterval(() => { if (st.anio >= 2031) { clearInterval(timer); timer = null; e.target.textContent = "▶ Reproducir"; return; } st.anio++; mostrar(); }, 1800);
+};
+addEventListener("hashchange", () => { leerHash(); mostrar(); });
+leerHash(); mostrar();
+</script>
+</body>
+</html>
